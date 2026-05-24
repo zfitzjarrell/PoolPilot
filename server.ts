@@ -99,25 +99,66 @@ async function startServer() {
     const { username, password, services } = req.body;
     const config = loadConfig();
     
-    if (username !== undefined) config.username = username;
-    if (password !== undefined && password !== "" && password !== "********") {
-      config.password = password;
-    }
-    if (services !== undefined) {
-      config.services = {
-        lights: !!services.lights,
-        cleaner: !!services.cleaner,
-        bubbler: !!services.bubbler,
-        heater: !!services.heater,
-        pump: !!services.pump
-      };
+    const testUsername = username !== undefined ? username : (config.username || process.env.IAQUALINK_USERNAME || "");
+    const testPassword = (password !== undefined && password !== "" && password !== "********") 
+      ? password 
+      : (config.password || process.env.IAQUALINK_PASSWORD || "");
+
+    if (!testUsername || !testPassword) {
+      return res.status(400).json({ success: false, error: "Setup required: Missing credentials" });
     }
 
-    if (saveConfig(config)) {
-      res.json({ success: true, message: "Configuration saved successfully" });
-    } else {
-      res.status(500).json({ error: "Failed to save configuration file" });
-    }
+    // Verification check against iAquaLink API before saving configuration
+    const cmd = process.platform === "win32" ? "python get_pool_temp.py" : "python3 get_pool_temp.py";
+    exec(
+      cmd,
+      {
+        env: {
+          ...process.env,
+          IAQUALINK_USERNAME: testUsername,
+          IAQUALINK_PASSWORD: testPassword,
+          PYTHONPATH: ".python_lib"
+        }
+      },
+      (error, stdout, stderr) => {
+        try {
+          const data = JSON.parse(stdout);
+          if (data.error || !data.success) {
+            return res.status(400).json({ 
+              success: false, 
+              error: data.error || "Failed to authenticate with iAquaLink. Please check your username and password." 
+            });
+          }
+          
+          // Connection verified, safe to save config
+          if (username !== undefined) config.username = username;
+          if (password !== undefined && password !== "" && password !== "********") {
+            config.password = password;
+          }
+          if (services !== undefined) {
+            config.services = {
+              lights: !!services.lights,
+              cleaner: !!services.cleaner,
+              bubbler: !!services.bubbler,
+              heater: !!services.heater,
+              pump: !!services.pump
+            };
+          }
+
+          if (saveConfig(config)) {
+            res.json({ success: true, message: "Configuration saved successfully" });
+          } else {
+            res.status(500).json({ error: "Failed to save configuration file" });
+          }
+        } catch (e) {
+          console.error("Failed to parse verification response:", e, "stdout:", stdout);
+          res.status(400).json({ 
+            success: false, 
+            error: "Failed to verify connection to iAquaLink. Please verify your credentials." 
+          });
+        }
+      }
+    );
   });
 
   // Add a route to trigger the python script
