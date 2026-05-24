@@ -210,7 +210,18 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
+    const url = `http://localhost:${PORT}`;
     console.log(`Server running on port ${PORT}`);
+    console.log(`Opening browser at ${url}...`);
+    
+    // Automatically open default browser
+    const startCmd =
+      process.platform === "darwin"
+        ? "open"
+        : process.platform === "win32"
+        ? "start"
+        : "xdg-open";
+    exec(`${startCmd} ${url}`);
   });
 }
 
