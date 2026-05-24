@@ -368,6 +368,25 @@ export default function App() {
                   />
                 </div>
                 
+                {config.localIp && (
+                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 my-4">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-blue-400 mb-2">Access on other devices</h3>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      Connect your tablets or phones to the same Wi-Fi and navigate to:
+                    </p>
+                    <div className="mt-2 space-y-1.5 font-mono text-[11px] bg-slate-950/60 p-2.5 rounded-lg border border-slate-950">
+                      <div className="text-slate-300">
+                        <span className="text-slate-500 font-sans">Modern: </span>
+                        http://{config.localIp}:{config.port || 3000}
+                      </div>
+                      <div className="text-slate-300 pt-1 border-t border-slate-900/40">
+                        <span className="text-slate-500 font-sans">Legacy: </span>
+                        http://{config.localIp}:{config.port || 3000}/legacy
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <button 
                   type="submit" 
                   disabled={savingConfig}
@@ -778,6 +797,33 @@ export default function App() {
                     ))}
                   </div>
                 </div>
+
+                {/* 4. Local Network Access */}
+                {config.localIp && (
+                  <div className="bg-blue-500/5 border border-blue-500/15 rounded-2xl p-5">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-blue-400 mb-2 font-sans flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                      Local Network Access
+                    </h3>
+                    <p className="text-xs text-slate-400 leading-relaxed font-sans mb-3">
+                      To open this dashboard on other devices (like iPads, tablets, or phones), connect them to your home Wi-Fi and navigate to:
+                    </p>
+                    <div className="space-y-2 font-mono text-xs bg-slate-950/60 p-3.5 border border-slate-950 rounded-xl">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                        <span className="text-slate-500 font-sans">Modern Dashboard:</span>
+                        <a href={`http://${config.localIp}:${config.port || 3000}`} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline">
+                          http://{config.localIp}:{config.port || 3000}
+                        </a>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 pt-2 border-t border-slate-900/50">
+                        <span className="text-slate-500 font-sans">Legacy Dashboard (iOS 9+):</span>
+                        <a href={`http://${config.localIp}:${config.port || 3000}/legacy`} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline">
+                          http://{config.localIp}:{config.port || 3000}/legacy
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Buttons */}
                 <div className="flex gap-3 justify-end border-t border-slate-800/80 pt-6">

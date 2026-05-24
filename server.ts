@@ -4,6 +4,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import fs from "fs";
+import os from "os";
 
 // Load environment variables from .env.local first, then .env
 dotenv.config({ path: ".env.local" });
@@ -54,6 +55,20 @@ function saveConfig(config: Config): boolean {
   }
 }
 
+function getLocalIpAddress(): string {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const net of interfaces[name] || []) {
+      // Check for IPv4 and ensure it's not local loopback
+      const family = typeof net.family === "string" ? net.family : (net as any).family;
+      if (family === "IPv4" && !net.internal) {
+        return net.address;
+      }
+    }
+  }
+  return "localhost";
+}
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
@@ -74,7 +89,9 @@ async function startServer() {
         bubbler: true,
         heater: true,
         pump: true
-      }
+      },
+      localIp: getLocalIpAddress(),
+      port: PORT
     });
   });
 
