@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Pool Monitor">
+  <title>PoolPilot iAquaLink Controller (Legacy)</title>
+  <style>
+    /* Premium legacy-compatible CSS - optimized for iOS 9 Safari (Safari 9) */
+    body {
+      background-color: #020617;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      width: 100%;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      border-bottom: 1px solid #1e293b;
+      padding-bottom: 16px;
+    }
+    h1 {
+      font-size: 24px;
+      margin: 0;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+    }
+    .subtitle {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+    .status-badge {
+      background-color: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      color: #10b981;
+      padding: 6px 12px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      display: inline-flex;
+      align-items: center;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background-color: #10b981;
+      border-radius: 50%;
+      margin-right: 6px;
+      display: inline-block;
+    }
+    .refresh-btn {
+      background-color: #0f172a;
+      border: 1px solid #334155;
+      color: #94a3b8;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      font-weight: 600;
+      -webkit-transition: all 0.2s ease;
+      transition: all 0.2s ease;
+    }
+    .refresh-btn:active {
+      background-color: #1e293b;
+      color: #38bdf8;
+    }
+    .toggle-btn-legacy {
+      display: block;
+      width: 100%;
+      background-color: #0f172a;
+      border: 1px solid #1e293b;
+      color: #94a3b8;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 12px;
+      cursor: pointer;
+      -webkit-transition: all 0.2s ease;
+      transition: all 0.2s ease;
+    }
+    .toggle-btn-legacy:active {
+      background-color: #1e293b;
+      color: #38bdf8;
+    }
+    .color-dot-legacy {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: inline-block;
+      -webkit-transition: -webkit-transform 0.1s ease, transform 0.1s ease;
+      transition: -webkit-transform 0.1s ease, transform 0.1s ease;
+    }
+    .color-dot-legacy:active {
+      -webkit-transform: scale(0.9);
+      transform: scale(0.9);
+    }
+    .error-box {
+      background-color: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      color: #f87171;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      display: none;
+    }
+    /* Grid system using Flexbox for legacy Safari (no CSS Grid support in iOS 9) */
+    .bento-grid {
+      display: flex;
+      flex-wrap: wrap;
+      margin: -10px;
+    }
+    .card {
+      box-sizing: border-box;
+      padding: 10px;
+      width: 100%;
+    }
+    @media (min-width: 768px) {
+      .w-25 {
+        width: 25%;
+      }
+      .w-33 {
+        width: 33.33%;
+      }
+      .w-50 {
+        width: 50%;
+      }
+      .w-66 {
+        width: 66.66%;
+      }
+    }
+    .card-content {
+      background-color: rgba(30, 41, 59, 0.3);
+      border: 1px solid #1e293b;
+      border-radius: 20px;
+      padding: 16px;
+      height: 100%;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .card-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #64748b;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .card-subtitle {
+      font-size: 18px;
+      font-weight: 600;
+      color: #e2e8f0;
+      margin: 0 0 16px 0;
+    }
+    .temp-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 20px 0;
+    }
+    .temp-display {
+      display: flex;
+      align-items: baseline;
+    }
+    .temp-value {
+      font-size: 80px;
+      font-weight: 800;
+      line-height: 1;
+      color: #38bdf8;
+    }
+    .temp-unit {
+      font-size: 32px;
+      color: #7dd3fc;
+      margin-left: 4px;
+    }
+    .air-temp-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding-right: 32px;
+    }
+    .air-temp-label {
+      font-size: 24px;
+      font-weight: 300;
+      color: #cbd5e1;
+      letter-spacing: 0.5px;
+    }
+    .air-temp-val-large {
+      font-size: 40px;
+      font-weight: 300;
+      color: #ffffff;
+      margin-top: 4px;
+    }
+    .card-footer-stats {
+      display: flex;
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .stat-box {
+      background-color: rgba(15, 23, 42, 0.6);
+      border: 1px solid #0f172a;
+      padding: 10px 16px;
+      border-radius: 12px;
+      flex-grow: 1;
+    }
+    .stat-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #64748b;
+      font-weight: bold;
+      margin-bottom: 2px;
+    }
+    .stat-val {
+      font-size: 14px;
+      font-weight: 600;
+      color: #cbd5e1;
+    }
+    .badge-heating {
+      color: #f97316;
+    }
+    .card-small-content {
+      min-height: 140px;
+    }
+    .value-medium {
+      font-size: 36px;
+      font-weight: 800;
+      color: #ffffff;
+      margin: 12px 0 4px 0;
+    }
+    .progress-bar-bg {
+      height: 6px;
+      background-color: #0f172a;
+      border-radius: 9999px;
+      margin-top: 12px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(to right, #f97316, #f43f5e);
+      width: 0%;
+      -webkit-transition: width 1s ease;
+      transition: width 1s ease;
+    }
+    .card-blue {
+      background: linear-gradient(135deg, #2563eb, #0891b2);
+      border: none;
+    }
+    .card-blue .card-title {
+      color: rgba(255, 255, 255, 0.8);
+    }
+    .card-blue .card-subtitle {
+      color: #ffffff;
+    }
+    .card-blue .value-medium {
+      color: #ffffff;
+    }
+    .card-blue .stat-desc {
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.7);
+      margin-top: 8px;
+      text-transform: uppercase;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .update-time-box {
+      text-align: right;
+      font-size: 11px;
+      color: #64748b;
+    }
+    .update-time-box strong {
+      color: #cbd5e1;
+      display: block;
+      font-size: 12px;
+    }
+    footer {
+      margin-top: 40px;
+      border-top: 1px solid #1e293b;
+      padding-top: 16px;
+      padding-bottom: 8px;
+      font-size: 10px;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>
+          <svg style="width: 28px; height: 28px; margin-right: 8px; fill: #38bdf8;" viewBox="0 0 24 24"><path d="M12,20C11.3,20 10.5,20 9.7,19.8C7.5,19.3 6,17.4 6,15.2V11H18V15.2C18,17.4 16.5,19.3 14.3,19.8C13.5,20 12.7,20 12,20M12,2C14.8,2 17.3,3.6 18.5,6.1C19.7,8.6 19.3,11.6 17.5,13.7C17.8,14.2 18,14.7 18,15.2V17H6V15.2C6,14.7 6.2,14.2 6.5,13.7C4.7,11.6 4.3,8.6 5.5,6.1C6.7,3.6 9.2,2 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4M12,6A6,6 0 0,1 18,12A6,6 0 0,1 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6M12,8A4,4 0 0,0 8,12A4,4 0 0,0 12,16A4,4 0 0,0 16,12A4,4 0 0,0 12,8Z"/></svg>
+          PoolPilot <span style="color: #64748b; font-style: italic; font-weight: 500; margin-left: 6px;">iAquaLink</span>
+        </h1>
+        <div class="subtitle" id="system-serial">Smart pool control for iAqualink systems</div>
+      </div>
+      <div class="header-right">
+        <div class="status-badge">
+          <span class="status-dot"></span>
+          <span>Online</span>
+        </div>
+        <div class="update-time-box">
+          LAST UPDATED
+          <strong id="last-updated">Never</strong>
+        </div>
+        <button class="refresh-btn" id="refresh-btn" onclick="fetchData()">
+          Refresh
+        </button>
+        <button class="refresh-btn" id="settings-btn" onclick="toggleSettingsModal(true)" style="margin-left: 8px;">
+          Settings
+        </button>
+      </div>
+    </header>
+
+    <div class="error-box" id="error-box"></div>
+
+    <div class="bento-grid">
+      <!-- Main Pool Card -->
+      <div class="card w-50">
+        <div class="card-content">
+          <div>
+            <div class="card-title">Device: pool_temp</div>
+            <h3 class="card-subtitle" id="system-name">Pool Temperature</h3>
+          </div>
+          <div class="temp-container">
+            <div class="temp-display">
+              <span class="temp-value" id="pool-temp">--</span>
+              <span class="temp-unit" id="pool-temp-unit">°F</span>
+            </div>
+            <div class="air-temp-box">
+              <div class="air-temp-label">Air Temp</div>
+              <div class="air-temp-val-large" id="air-temp-large">-- F</div>
+            </div>
+          </div>
+          <div class="card-footer-stats">
+            <div class="stat-box">
+              <div class="stat-label">Target Set Point</div>
+              <div class="stat-val" id="pool-setpoint">--</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Heater Status</div>
+              <div class="stat-val" id="pool-heater">--</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pool Cleaner -->
+      <div class="card w-25" id="cleaner-card">
+        <div class="card-content card-small-content">
+          <div>
+            <div class="card-title">Device: aux_1</div>
+            <div>
+              <h3 class="card-subtitle" style="margin-bottom:4px;">Pool Cleaner</h3>
+              <div class="value-medium" id="cleaner-status">--</div>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar" id="cleaner-progress"></div>
+            </div>
+            <button class="toggle-btn-legacy" onclick="toggleDevice('aux_1', 'cleaner-status')">Toggle state</button>
+          </div>
+          <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #1e293b;" id="cleaner-schedule-box">
+            <div style="font-size: 8px; text-transform: uppercase; color: #64748b; font-weight: bold; letter-spacing: 1px; margin-bottom: 2px;">Schedule</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pump Circulation -->
+      <div class="card w-25" id="pump-card">
+        <div class="card-content card-small-content card-blue">
+          <div>
+            <div class="card-title">Filter System</div>
+            <div>
+              <h3 class="card-subtitle" style="margin-bottom:4px; color: #ffffff;">Pump Circulation</h3>
+              <div class="value-medium" id="pump-status" style="font-size: 28px; text-transform: uppercase;">--</div>
+            </div>
+            <div class="stat-desc" id="pump-desc">Checking status...</div>
+          </div>
+          <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.15);" id="pump-schedule-box">
+            <div style="font-size: 8px; text-transform: uppercase; color: rgba(255, 255, 255, 0.6); font-weight: bold; letter-spacing: 1px; margin-bottom: 2px;">Schedule</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Heater Status -->
+      <div class="card w-33" id="heater-card">
+        <div class="card-content card-small-content">
+          <div class="card-title">Equipment</div>
+          <div>
+            <h3 class="card-subtitle" style="margin-bottom:4px;">Heater Control</h3>
+            <div class="value-medium" id="heater-summary" style="font-size: 28px;">--</div>
+          </div>
+          <div style="font-size: 11px; color: #64748b; margin-top: 8px;" id="heater-desc">Heaters inactive</div>
+        </div>
+      </div>
+
+      <!-- Pool Light -->
+      <div class="card w-33" id="light-card">
+        <div class="card-content card-small-content">
+          <div style="display: flex; justify-content: space-between; align-items: start;">
+            <div>
+              <div class="card-title">Lighting</div>
+              <h3 class="card-subtitle" style="margin-bottom:4px;">Pool Light</h3>
+            </div>
+            <button id="light-toggle-btn" class="toggle-btn-legacy" style="margin-top: 0; width: auto; padding: 6px 12px;" onclick="handleConfirmToggle('aux_2', 'light-status')">Toggle</button>
+          </div>
+          <div style="margin-top: 8px;">
+            <div class="value-medium" id="light-status" style="font-size: 28px; text-transform: uppercase;">--</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 4px;" id="light-desc">Lights off</div>
+          </div>
+          <!-- Color Picker Container -->
+          <div id="light-colors-container" style="display: none; margin-top: 12px; padding-top: 8px; border-top: 1px solid #1e293b;">
+            <div style="font-size: 8px; text-transform: uppercase; color: #64748b; font-weight: bold; letter-spacing: 1px; margin-bottom: 6px;">Set Color</div>
+            <div id="light-colors-grid" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- Bubbler -->
+      <div class="card w-33" id="bubbler-card" onclick="handleConfirmToggle('aux_3', 'bubbler-status')" style="cursor: pointer;">
+        <div class="card-content card-small-content">
+          <div class="card-title">Features</div>
+          <div>
+            <h3 class="card-subtitle" style="margin-bottom:4px;">Bubbler Jets</h3>
+            <div class="value-medium" id="bubbler-status" style="font-size: 28px; text-transform: uppercase;">--</div>
+          </div>
+          <div style="font-size: 11px; color: #64748b; margin-top: 8px;" id="bubbler-desc">Bubbler standby</div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <div>© <span id="current-year">2026</span> Domestic Automation Hub</div>
+      <div style="display: flex; align-items: center;">
+        <span style="width: 6px; height: 6px; background-color: #10b981; border-radius: 50%; margin-right: 6px;"></span>
+        Safety Protocol: Active • Max Limit 104°F
+      </div>
+    </footer>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(2, 6, 23, 0.85); z-index: 1000; align-items: center; justify-content: center; box-sizing: border-box; padding: 20px;">
+    <div style="background-color: #0f172a; border: 1px solid #1e293b; border-radius: 20px; max-width: 500px; width: 100%; box-sizing: border-box; padding: 24px; color: #f8fafc; max-height: 90%; overflow-y: auto;">
+      <h2 style="font-size: 20px; font-weight: 700; margin-top: 0; margin-bottom: 16px; border-bottom: 1px solid #1e293b; padding-bottom: 12px; font-family: sans-serif;">
+        System Configuration
+      </h2>
+      
+      <form id="settings-form" onsubmit="saveSettings(event)" style="display: flex; flex-direction: column; gap: 16px; font-family: sans-serif;">
+        <!-- Credentials -->
+        <div>
+          <div style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: bold; letter-spacing: 1px; margin-bottom: 8px;">1. iAquaLink Cloud Credentials</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div>
+              <label style="display: block; font-size: 10px; color: #94a3b8; font-weight: bold; margin-bottom: 4px;">USERNAME (EMAIL)</label>
+              <input id="settings-username" type="email" required style="width: 100%; box-sizing: border-box; padding: 8px 12px; background-color: #020617; border: 1px solid #1e293b; border-radius: 8px; color: #ffffff; font-size: 13px;" />
+            </div>
+            <div>
+              <label style="display: block; font-size: 10px; color: #94a3b8; font-weight: bold; margin-bottom: 4px;">PASSWORD</label>
+              <input id="settings-password" type="password" style="width: 100%; box-sizing: border-box; padding: 8px 12px; background-color: #020617; border: 1px solid #1e293b; border-radius: 8px; color: #ffffff; font-size: 13px;" placeholder="Enter Password" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Server Equipment Configuration -->
+        <div>
+          <div style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: bold; letter-spacing: 1px; margin-bottom: 8px;">2. Active Equipment (Server Level)</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; background-color: rgba(2, 6, 23, 0.4); border: 1px solid #1e293b; padding: 8px 12px; border-radius: 8px; cursor: pointer; flex-grow: 1; min-width: 120px;">
+              <input id="srv-lights" type="checkbox" /> Lights
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; background-color: rgba(2, 6, 23, 0.4); border: 1px solid #1e293b; padding: 8px 12px; border-radius: 8px; cursor: pointer; flex-grow: 1; min-width: 120px;">
+              <input id="srv-cleaner" type="checkbox" /> Cleaner
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; background-color: rgba(2, 6, 23, 0.4); border: 1px solid #1e293b; padding: 8px 12px; border-radius: 8px; cursor: pointer; flex-grow: 1; min-width: 120px;">
+              <input id="srv-bubbler" type="checkbox" /> Bubbler
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; background-color: rgba(2, 6, 23, 0.4); border: 1px solid #1e293b; padding: 8px 12px; border-radius: 8px; cursor: pointer; flex-grow: 1; min-width: 120px;">
+              <input id="srv-heater" type="checkbox" /> Heater Control
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; background-color: rgba(2, 6, 23, 0.4); border: 1px solid #1e293b; padding: 8px 12px; border-radius: 8px; cursor: pointer; flex-grow: 1; min-width: 120px;">
+              <input id="srv-pump" type="checkbox" /> Pump Circulation
+            </label>
+          </div>
+        </div>
+
+        <!-- Local Screen Card Visibility -->
+        <div>
+          <div style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: bold; letter-spacing: 1px; margin-bottom: 8px;">3. Card Visibility (Screen Level)</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; background-color: rgba(2, 6, 23, 0.4); border: 1px solid #1e293b; padding: 8px 12px; border-radius: 8px; cursor: pointer; flex-grow: 1; min-width: 120px;">
+              <input id="vis-lights" type="checkbox" /> Lights Card
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; background-color: rgba(2, 6, 23, 0.4); border: 1px solid #1e293b; padding: 8px 12px; border-radius: 8px; cursor: pointer; flex-grow: 1; min-width: 120px;">
+              <input id="vis-cleaner" type="checkbox" /> Cleaner Card
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; background-color: rgba(2, 6, 23, 0.4); border: 1px solid #1e293b; padding: 8px 12px; border-radius: 8px; cursor: pointer; flex-grow: 1; min-width: 120px;">
+              <input id="vis-bubbler" type="checkbox" /> Bubbler Card
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; background-color: rgba(2, 6, 23, 0.4); border: 1px solid #1e293b; padding: 8px 12px; border-radius: 8px; cursor: pointer; flex-grow: 1; min-width: 120px;">
+              <input id="vis-heater" type="checkbox" /> Heater Card
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; background-color: rgba(2, 6, 23, 0.4); border: 1px solid #1e293b; padding: 8px 12px; border-radius: 8px; cursor: pointer; flex-grow: 1; min-width: 120px;">
+              <input id="vis-pump" type="checkbox" /> Pump Card
+            </label>
+          </div>
+        </div>
+
+        <!-- Buttons -->
+        <div style="display: flex; gap: 12px; justify-content: flex-end; border-top: 1px solid #1e293b; padding-top: 16px; margin-top: 8px;">
+          <button type="button" onclick="toggleSettingsModal(false)" style="background-color: transparent; border: 1px solid #1e293b; color: #94a3b8; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px;">Cancel</button>
+          <button type="submit" id="save-settings-btn" style="background-color: #2563eb; border: none; color: #ffffff; padding: 8px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 13px;">Save Settings</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Pure ES5 script compatible with iOS 9.3.5 / Safari 9
+    document.getElementById('current-year').innerHTML = new Date().getFullYear().toString();
+
+    function updateElementText(id, text) {
+      var el = document.getElementById(id);
+      if (el) {
+        el.innerText = text;
+      }
+    }
+
+    function showError(msg) {
+      var box = document.getElementById('error-box');
+      if (box) {
+        box.innerText = msg;
+        box.style.display = 'block';
+      }
+    }
+
+    // Configuration & Visibility State (ES5)
+    var serverConfig = {
+      username: '',
+      hasPassword: false,
+      services: { lights: true, cleaner: true, bubbler: true, heater: true, pump: true }
+    };
+    var clientVisibility = {
+      lights: true,
+      cleaner: true,
+      bubbler: true,
+      heater: true,
+      pump: true
+    };
+
+    function loadClientVisibility() {
+      var vis = localStorage.getItem('poolpilot_visibility');
+      if (vis) {
+        try {
+          var parsed = JSON.parse(vis);
+          for (var k in parsed) {
+            clientVisibility[k] = parsed[k];
+          }
+        } catch (e) {}
+      }
+    }
+
+    function saveClientVisibility() {
+      localStorage.setItem('poolpilot_visibility', JSON.stringify(clientVisibility));
+    }
+
+    function applyCardVisibilities() {
+      var cleanerVis = serverConfig.services.cleaner && clientVisibility.cleaner;
+      var cleanerEl = document.getElementById('cleaner-card');
+      if (cleanerEl) cleanerEl.style.display = cleanerVis ? 'block' : 'none';
+
+      var pumpVis = serverConfig.services.pump && clientVisibility.pump;
+      var pumpEl = document.getElementById('pump-card');
+      if (pumpEl) pumpEl.style.display = pumpVis ? 'block' : 'none';
+
+      var heaterVis = serverConfig.services.heater && clientVisibility.heater;
+      var heaterEl = document.getElementById('heater-card');
+      if (heaterEl) heaterEl.style.display = heaterVis ? 'block' : 'none';
+
+      var lightVis = serverConfig.services.lights && clientVisibility.lights;
+      var lightEl = document.getElementById('light-card');
+      if (lightEl) lightEl.style.display = lightVis ? 'block' : 'none';
+
+      var bubblerVis = serverConfig.services.bubbler && clientVisibility.bubbler;
+      var bubblerEl = document.getElementById('bubbler-card');
+      if (bubblerEl) bubblerEl.style.display = bubblerVis ? 'block' : 'none';
+    }
+
+    function toggleSettingsModal(show) {
+      var modal = document.getElementById('settings-modal');
+      if (modal) {
+        modal.style.display = show ? 'flex' : 'none';
+      }
+      if (show) {
+        // Populate inputs with current config
+        var usernameInput = document.getElementById('settings-username');
+        var passwordInput = document.getElementById('settings-password');
+        if (usernameInput) usernameInput.value = serverConfig.username || '';
+        if (passwordInput) passwordInput.value = serverConfig.hasPassword ? '********' : '';
+        
+        // Populate checkboxes
+        document.getElementById('srv-lights').checked = !!serverConfig.services.lights;
+        document.getElementById('srv-cleaner').checked = !!serverConfig.services.cleaner;
+        document.getElementById('srv-bubbler').checked = !!serverConfig.services.bubbler;
+        document.getElementById('srv-heater').checked = !!serverConfig.services.heater;
+        document.getElementById('srv-pump').checked = !!serverConfig.services.pump;
+
+        document.getElementById('vis-lights').checked = !!clientVisibility.lights;
+        document.getElementById('vis-cleaner').checked = !!clientVisibility.cleaner;
+        document.getElementById('vis-bubbler').checked = !!clientVisibility.bubbler;
+        document.getElementById('vis-heater').checked = !!clientVisibility.heater;
+        document.getElementById('vis-pump').checked = !!clientVisibility.pump;
+      }
+    }
+
+    function fetchServerConfig(callback) {
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', '/api/config', true);
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+          try {
+            var data = JSON.parse(xhr.responseText);
+            serverConfig = data;
+            if (callback) callback();
+          } catch(e) {}
+        }
+      };
+      xhr.send();
+    }
+
+    function saveSettings(event) {
+      if (event && event.preventDefault) event.preventDefault();
+      
+      var saveBtn = document.getElementById('save-settings-btn');
+      if (saveBtn) saveBtn.innerText = 'Saving...';
+
+      var username = document.getElementById('settings-username').value;
+      var password = document.getElementById('settings-password').value;
+
+      var services = {
+        lights: document.getElementById('srv-lights').checked,
+        cleaner: document.getElementById('srv-cleaner').checked,
+        bubbler: document.getElementById('srv-bubbler').checked,
+        heater: document.getElementById('srv-heater').checked,
+        pump: document.getElementById('srv-pump').checked
+      };
+
+      // Also save client visibility settings locally
+      clientVisibility.lights = document.getElementById('vis-lights').checked;
+      clientVisibility.cleaner = document.getElementById('vis-cleaner').checked;
+      clientVisibility.bubbler = document.getElementById('vis-bubbler').checked;
+      clientVisibility.heater = document.getElementById('vis-heater').checked;
+      clientVisibility.pump = document.getElementById('vis-pump').checked;
+      saveClientVisibility();
+
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/config', true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+          if (saveBtn) saveBtn.innerText = 'Save Settings';
+          if (xhr.status === 200) {
+            try {
+              var res = JSON.parse(xhr.responseText);
+              if (res.success) {
+                toggleSettingsModal(false);
+                fetchServerConfig(function() {
+                  applyCardVisibilities();
+                  fetchData();
+                });
+              } else {
+                alert(res.error || 'Failed to save settings');
+              }
+            } catch(e) {
+              alert('Parse error: ' + e.message);
+            }
+          } else {
+            alert('Server error saving config: ' + xhr.status);
+          }
+        }
+      };
+
+      var payload = JSON.stringify({
+        username: username,
+        password: password,
+        services: services
+      });
+      xhr.send(payload);
+    }
+
+    function fetchData() {
+      var btn = document.getElementById('refresh-btn');
+      if (btn) {
+        btn.innerText = 'Refreshing...';
+        btn.disabled = true;
+      }
+      var errorBox = document.getElementById('error-box');
+      if (errorBox) {
+        errorBox.style.display = 'none';
+      }
+
+      // XHR for maximum compatibility with legacy browsers (no native Fetch on iOS 9)
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', '/api/pool-temp', true);
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+          if (btn) {
+            btn.innerText = 'Refresh';
+            btn.disabled = false;
+          }
+          
+          if (xhr.status === 200) {
+            try {
+              var response = JSON.parse(xhr.responseText);
+              if (response.success && response.systems && response.systems.length > 0) {
+                var system = response.systems[0];
+                
+                updateElementText('system-serial', 'System Serial: ' + system.serial + ' • Smart pool control for iAqualink systems');
+                updateElementText('system-name', system.name || 'Pool Temperature');
+                
+                var poolTemp = system.pool_temp !== null && system.pool_temp !== undefined ? system.pool_temp : '--';
+                var poolTempEl = document.getElementById('pool-temp');
+                var poolTempUnitEl = document.getElementById('pool-temp-unit');
+                if (poolTempEl) {
+                  poolTempEl.innerText = poolTemp;
+                  var color = '#38bdf8'; // Blue
+                  var unitColor = '#7dd3fc'; // Light blue
+                  if (system.pool_temp !== null && system.pool_temp !== undefined) {
+                    var t = system.pool_temp;
+                    if (t >= 79 && t <= 83) {
+                      color = '#FFCA3A'; // Light yellow
+                      unitColor = '#FFCA3A';
+                    } else if (t >= 84 && t <= 87) {
+                      color = '#FF924C'; // Orange
+                      unitColor = '#FF924C';
+                    } else if (t >= 88) {
+                      color = '#F94144'; // Red
+                      unitColor = '#F94144';
+                    }
+                  }
+                  poolTempEl.style.color = color;
+                  if (poolTempUnitEl) {
+                    poolTempUnitEl.style.color = unitColor;
+                  }
+                }
+                
+                var poolSetpoint = system.pool_set_point !== null && system.pool_set_point !== undefined ? system.pool_set_point + '°F' : 'Not Set';
+                updateElementText('pool-setpoint', poolSetpoint);
+                
+                var poolHeater = system.pool_heater ? 'Heating' : 'Off';
+                var poolHeaterEl = document.getElementById('pool-heater');
+                if (poolHeaterEl) {
+                  poolHeaterEl.innerText = poolHeater;
+                  if (system.pool_heater) {
+                    poolHeaterEl.className = 'stat-val badge-heating';
+                  } else {
+                    poolHeaterEl.className = 'stat-val';
+                  }
+                }
+                
+                var cleanerStatus = system.cleaner ? 'Active' : 'Standby';
+                updateElementText('cleaner-status', cleanerStatus);
+                
+                var cleanerProgress = document.getElementById('cleaner-progress');
+                if (cleanerProgress) {
+                  if (system.cleaner) {
+                    cleanerProgress.style.width = '100%';
+                  } else {
+                    cleanerProgress.style.width = '0%';
+                  }
+                }
+                
+                var airTempLarge = system.air_temp !== null && system.air_temp !== undefined ? system.air_temp + ' F' : '-- F';
+                updateElementText('air-temp-large', airTempLarge);
+                
+                var pumpStatus = system.pool_pump ? 'Active' : 'Standby';
+                updateElementText('pump-status', pumpStatus);
+                
+                var pumpDesc = system.pool_pump ? 'Flow Rate: Active • 2450 RPM' : 'Scheduled cycle off';
+                updateElementText('pump-desc', pumpDesc);
+                
+                var heaterActive = system.pool_heater || system.spa_heater;
+                var heaterSummary = heaterActive ? 'Active' : 'Standby';
+                updateElementText('heater-summary', heaterSummary);
+                
+                var heaterDesc = 'Heaters inactive';
+                if (system.pool_heater) {
+                  heaterDesc = 'Heating main pool';
+                } else if (system.spa_heater) {
+                  heaterDesc = 'Heating spa';
+                }
+                updateElementText('heater-desc', heaterDesc);
+                
+                var lightStatus = system.pool_light ? 'Active' : 'Standby';
+                updateElementText('light-status', lightStatus);
+                var lightStatusEl = document.getElementById('light-status');
+                if (lightStatusEl) {
+                  lightStatusEl.setAttribute('data-state', system.pool_light ? 'active' : 'standby');
+                }
+                var lightDesc = system.pool_light ? 'Active • Select color below' : 'Lights off';
+                updateElementText('light-desc', lightDesc);
+
+                // Show/hide and populate color picker
+                var colorsContainer = document.getElementById('light-colors-container');
+                var colorsGrid = document.getElementById('light-colors-grid');
+                if (colorsContainer && colorsGrid) {
+                  if (system.pool_light && system.pool_light_colors) {
+                    colorsContainer.style.display = 'block';
+                    colorsGrid.innerHTML = '';
+                    
+                    var COLOR_MAP = {
+                      "Alpine White": "#ffffff",
+                      "Sky Blue": "#38bdf8",
+                      "Cobalt Blue": "#1d4ed8",
+                      "Caribbean Blue": "#06b6d4",
+                      "Spring Green": "#4ade80",
+                      "Emerald Green": "#10b981",
+                      "Emerald Rose": "linear-gradient(135deg, #10b981, #f43f5e)",
+                      "Magenta": "#d946ef",
+                      "Violet": "#8b5cf6",
+                      "Slow Splash": "linear-gradient(135deg, #3b82f6, #06b6d4, #10b981)",
+                      "Fast Splash": "linear-gradient(135deg, #ef4444, #d946ef, #3b82f6)",
+                      "USA!": "linear-gradient(135deg, #002868, #ffffff, #bf0a30)",
+                      "Fat Tuesday": "linear-gradient(135deg, #8b5cf6, #eab308, #10b981)",
+                      "Disco Tech": "linear-gradient(135deg, #f43f5e, #eab308, #3b82f6)"
+                    };
+
+                    for (var c = 0; c < system.pool_light_colors.length; c++) {
+                      var colorName = system.pool_light_colors[c];
+                      var dot = document.createElement('div');
+                      dot.className = 'color-dot-legacy';
+                      dot.title = colorName;
+                      
+                      var bg = COLOR_MAP[colorName] || COLOR_MAP[colorName.replace("!", "")] || '#64748b';
+                      dot.style.background = bg;
+                      if (colorName === 'Alpine White') {
+                        dot.style.border = '1px solid #475569';
+                      }
+                      
+                      (function(name) {
+                        dot.onclick = function() {
+                          setColor(name);
+                        };
+                      })(colorName);
+                      
+                      colorsGrid.appendChild(dot);
+                    }
+                  } else {
+                    colorsContainer.style.display = 'none';
+                  }
+                }
+ 
+                var bubblerStatus = system.bubbler ? 'Active' : 'Standby';
+                updateElementText('bubbler-status', bubblerStatus);
+                var bubblerStatusEl = document.getElementById('bubbler-status');
+                if (bubblerStatusEl) {
+                  bubblerStatusEl.setAttribute('data-state', system.bubbler ? 'active' : 'standby');
+                }
+                var bubblerDesc = system.bubbler ? 'Active • Tap card to toggle' : 'Standby • Tap card to toggle';
+                updateElementText('bubbler-desc', bubblerDesc);
+                
+                var now = new Date();
+                updateElementText('last-updated', now.toLocaleTimeString());
+              } else {
+                if (response.error && response.error.indexOf('Setup required') !== -1) {
+                  showError('Setup required: Please configure your iAquaLink credentials.');
+                  toggleSettingsModal(true);
+                } else {
+                  showError(response.error || 'Failed to fetch pool temperature data');
+                }
+              }
+            } catch (e) {
+              showError('Failed to parse response: ' + e.message);
+            }
+          } else {
+            showError('Server returned error status: ' + xhr.status);
+          }
+        }
+      };
+      
+      xhr.onerror = function() {
+        if (btn) {
+          btn.innerText = 'Refresh';
+          btn.disabled = false;
+        }
+        showError('Network error trying to connect to server.');
+      };
+      
+      xhr.send();
+    }
+
+    var lightConfirm = false;
+    var bubblerConfirm = false;
+    var lightConfirmTimeout = null;
+    var bubblerConfirmTimeout = null;
+
+    function updateLightStatusConfirmText(confirming) {
+      var statusEl = document.getElementById('light-status');
+      var descEl = document.getElementById('light-desc');
+      var btnEl = document.getElementById('light-toggle-btn');
+      if (confirming) {
+        if (statusEl) statusEl.innerText = 'CONFIRM?';
+        if (descEl) {
+          var lightActive = (statusEl && statusEl.getAttribute('data-state') === 'active');
+          descEl.innerText = 'Tap button again to turn ' + (lightActive ? 'OFF' : 'ON');
+        }
+        if (btnEl) {
+          btnEl.innerText = 'Confirm?';
+          btnEl.style.backgroundColor = 'rgba(249, 115, 22, 0.2)';
+          btnEl.style.color = '#f97316';
+          btnEl.style.borderColor = 'rgba(249, 115, 22, 0.4)';
+        }
+      } else {
+        if (btnEl) {
+          btnEl.innerText = 'Toggle';
+          btnEl.style.backgroundColor = '';
+          btnEl.style.color = '';
+          btnEl.style.borderColor = '';
+        }
+        var lightActive = (statusEl && statusEl.getAttribute('data-state') === 'active');
+        if (statusEl) statusEl.innerText = lightActive ? 'ACTIVE' : 'STANDBY';
+        if (descEl) descEl.innerText = lightActive ? 'Active • Select color below' : 'Lights off';
+      }
+    }
+
+    function updateBubblerStatusConfirmText(confirming) {
+      var statusEl = document.getElementById('bubbler-status');
+      var descEl = document.getElementById('bubbler-desc');
+      var cardEl = document.getElementById('bubbler-card');
+      if (confirming) {
+        if (statusEl) statusEl.innerText = 'CONFIRM?';
+        if (descEl) {
+          var bubblerActive = (statusEl && statusEl.getAttribute('data-state') === 'active');
+          descEl.innerText = 'Tap card again to turn ' + (bubblerActive ? 'OFF' : 'ON');
+        }
+        if (cardEl) {
+          cardEl.style.borderColor = 'rgba(249, 115, 22, 0.4)';
+          cardEl.style.boxShadow = '0 0 15px rgba(249, 115, 22, 0.1)';
+        }
+      } else {
+        if (cardEl) {
+          cardEl.style.borderColor = '';
+          cardEl.style.boxShadow = '';
+        }
+        var bubblerActive = (statusEl && statusEl.getAttribute('data-state') === 'active');
+        if (statusEl) statusEl.innerText = bubblerActive ? 'ACTIVE' : 'STANDBY';
+        if (descEl) descEl.innerText = bubblerActive ? 'Active • Tap card to toggle' : 'Standby • Tap card to toggle';
+      }
+    }
+
+    function handleConfirmToggle(device, currentStatusId) {
+      if (togglingDevice) return;
+
+      if (device === 'aux_2') {
+        if (lightConfirm) {
+          lightConfirm = false;
+          if (lightConfirmTimeout) clearTimeout(lightConfirmTimeout);
+          updateLightStatusConfirmText(false);
+          toggleDevice('aux_2', currentStatusId);
+        } else {
+          lightConfirm = true;
+          if (lightConfirmTimeout) clearTimeout(lightConfirmTimeout);
+          updateLightStatusConfirmText(true);
+          lightConfirmTimeout = setTimeout(function() {
+            lightConfirm = false;
+            updateLightStatusConfirmText(false);
+          }, 4000);
+        }
+      } else if (device === 'aux_3') {
+        if (bubblerConfirm) {
+          bubblerConfirm = false;
+          if (bubblerConfirmTimeout) clearTimeout(bubblerConfirmTimeout);
+          updateBubblerStatusConfirmText(false);
+          toggleDevice('aux_3', currentStatusId);
+        } else {
+          bubblerConfirm = true;
+          if (bubblerConfirmTimeout) clearTimeout(bubblerConfirmTimeout);
+          updateBubblerStatusConfirmText(true);
+          bubblerConfirmTimeout = setTimeout(function() {
+            bubblerConfirm = false;
+            updateBubblerStatusConfirmText(false);
+          }, 4000);
+        }
+      } else {
+        toggleDevice(device, currentStatusId);
+      }
+    }
+
+    var togglingDevice = false;
+    function toggleDevice(device, currentStatusId) {
+      if (togglingDevice) return;
+      
+      var el = document.getElementById(currentStatusId);
+      if (!el) return;
+      
+      var currentState = el.innerText.trim().toLowerCase();
+      var action = (currentState === 'active' || currentState === 'on') ? 'off' : 'on';
+      
+      togglingDevice = true;
+      el.innerText = 'WAIT...';
+      
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', '/api/toggle?device=' + encodeURIComponent(device) + '&action=' + action, true);
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+          togglingDevice = false;
+          if (xhr.status === 200) {
+            try {
+              var response = JSON.parse(xhr.responseText);
+              if (response.success) {
+                fetchData();
+              } else {
+                alert(response.error || 'Failed to toggle device');
+                fetchData();
+              }
+            } catch (e) {
+              alert('Parse error: ' + e.message);
+              fetchData();
+            }
+          } else {
+            alert('Server error: ' + xhr.status);
+            fetchData();
+          }
+        }
+      };
+      xhr.send();
+    }
+
+    function setColor(colorName) {
+      if (togglingDevice) return;
+      
+      var el = document.getElementById('light-status');
+      if (el) el.innerText = 'SETTING...';
+      
+      togglingDevice = true;
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', '/api/toggle?device=aux_2&action=set_color&color=' + encodeURIComponent(colorName), true);
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+          togglingDevice = false;
+          if (xhr.status === 200) {
+            try {
+              var response = JSON.parse(xhr.responseText);
+              if (response.success) {
+                fetchData();
+              } else {
+                alert(response.error || 'Failed to set color');
+                fetchData();
+              }
+            } catch (e) {
+              alert('Parse error: ' + e.message);
+              fetchData();
+            }
+          } else {
+            alert('Server error: ' + xhr.status);
+            fetchData();
+          }
+        }
+      };
+      xhr.send();
+    }
+
+    // Schedules Configuration
+    var SCHEDULES = {
+      pool_pump: ["24 hrs, Every Day"],
+      cleaner: ["7:00 AM - 10:00 AM, Every Day"]
+    };
+
+    function renderSchedules() {
+      var pumpScheds = SCHEDULES.pool_pump;
+      var cleanerScheds = SCHEDULES.cleaner;
+      
+      var uniquePump = [];
+      for (var i = 0; i < pumpScheds.length; i++) {
+        if (uniquePump.indexOf(pumpScheds[i]) === -1) {
+          uniquePump.push(pumpScheds[i]);
+        }
+      }
+      
+      var uniqueCleaner = [];
+      for (var j = 0; j < cleanerScheds.length; j++) {
+        if (uniqueCleaner.indexOf(cleanerScheds[j]) === -1) {
+          uniqueCleaner.push(cleanerScheds[j]);
+        }
+      }
+      
+      var pumpBox = document.getElementById('pump-schedule-box');
+      if (pumpBox) {
+        for (var k = 0; k < uniquePump.length; k++) {
+          var p = document.createElement('div');
+          p.style.fontSize = '12px';
+          p.style.color = 'rgba(255, 255, 255, 0.9)';
+          p.style.fontWeight = '500';
+          p.style.marginTop = '2px';
+          p.innerText = uniquePump[k];
+          pumpBox.appendChild(p);
+        }
+      }
+      
+      var cleanerBox = document.getElementById('cleaner-schedule-box');
+      if (cleanerBox) {
+        for (var m = 0; m < uniqueCleaner.length; m++) {
+          var p = document.createElement('div');
+          p.style.fontSize = '12px';
+          p.style.color = '#cbd5e1';
+          p.style.fontWeight = '500';
+          p.style.marginTop = '2px';
+          p.innerText = uniqueCleaner[m];
+          cleanerBox.appendChild(p);
+        }
+      }
+    }
+
+    // Render schedules on page load
+    renderSchedules();
+
+    // Initial config and fetch
+    loadClientVisibility();
+    fetchServerConfig(function() {
+      applyCardVisibilities();
+      fetchData();
+    });
+
+    // Auto-refresh every 60 seconds
+    setInterval(fetchData, 60000);
+  </script>
+</body>
+</html>
