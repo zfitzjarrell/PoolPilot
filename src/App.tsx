@@ -16,12 +16,16 @@ import {
   Settings
 } from "lucide-react";
 
-const getTempColorStyle = (temp: number | null) => {
-  if (temp === null || temp <= 78) return {};
-  let color = "#38bdf8";
-  if (temp >= 79 && temp <= 83) color = "#FFCA3A";
-  else if (temp >= 84 && temp <= 87) color = "#FF924C";
-  else if (temp >= 88) color = "#F94144";
+const getTempColorStyle = (temp: number | null, settings?: { enabled: boolean; warmMin: number; veryWarmMin: number; hotMin: number }) => {
+  if (temp === null) return {};
+  const activeSettings = settings || { enabled: true, warmMin: 79, veryWarmMin: 84, hotMin: 88 };
+  if (!activeSettings.enabled) return {};
+  
+  let color = "";
+  if (temp >= activeSettings.hotMin) color = "#F94144";
+  else if (temp >= activeSettings.veryWarmMin) color = "#FF924C";
+  else if (temp >= activeSettings.warmMin) color = "#FFCA3A";
+  else return {};
   
   return {
     color: color,
@@ -87,6 +91,13 @@ export default function App() {
     heater: true,
     pump: true,
     diagnostics: true
+  });
+
+  const [tempColorSettings, setTempColorSettings] = useState<any>({
+    enabled: true,
+    warmMin: 79,
+    veryWarmMin: 84,
+    hotMin: 88
   });
 
   const isSetupRequired = error === "Setup required: Missing credentials";
@@ -252,6 +263,15 @@ export default function App() {
     localStorage.setItem("poolpilot_visibility", JSON.stringify(newVisibility));
   };
 
+  const handleTempColorSettingChange = (key: string, value: any) => {
+    const newSettings = {
+      ...tempColorSettings,
+      [key]: value
+    };
+    setTempColorSettings(newSettings);
+    localStorage.setItem("poolpilot_temp_colors", JSON.stringify(newSettings));
+  };
+
   useEffect(() => {
     // Load local storage visibility settings
     const storedVisibility = localStorage.getItem("poolpilot_visibility");
@@ -263,6 +283,19 @@ export default function App() {
         }));
       } catch (e) {
         console.error("Error reading visibility config from localStorage:", e);
+      }
+    }
+
+    // Load local storage temp color settings
+    const storedTempSettings = localStorage.getItem("poolpilot_temp_colors");
+    if (storedTempSettings) {
+      try {
+        setTempColorSettings((prev: any) => ({
+          ...prev,
+          ...JSON.parse(storedTempSettings)
+        }));
+      } catch (e) {
+        console.error("Error reading temp color config from localStorage:", e);
       }
     }
 
@@ -450,13 +483,13 @@ export default function App() {
                     <div className="flex items-baseline gap-1">
                       <span 
                         className="text-[100px] md:text-[140px] font-extrabold leading-none tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-blue-400 via-cyan-300 to-white font-sans"
-                        style={getTempColorStyle(system.pool_temp)}
+                        style={getTempColorStyle(system.pool_temp, tempColorSettings)}
                       >
                         {system.pool_temp !== null ? system.pool_temp : "--"}
                       </span>
                       <span 
                         className="text-4xl md:text-6xl font-light text-blue-300"
-                        style={system.pool_temp !== null && system.pool_temp > 78 ? { color: getTempColorStyle(system.pool_temp).color } : {}}
+                        style={system.pool_temp !== null && getTempColorStyle(system.pool_temp, tempColorSettings).color ? { color: getTempColorStyle(system.pool_temp, tempColorSettings).color } : {}}
                       >
                         °F
                       </span>
@@ -798,7 +831,61 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* 4. Local Network Access */}
+                {/* 4. Temperature Color Settings */}
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3 font-sans">4. Temperature Color Settings (Screen Level)</h3>
+                  <div className="space-y-4">
+                    <label className="flex items-center gap-2 bg-slate-950/40 border border-slate-800/80 rounded-xl p-3 cursor-pointer hover:border-slate-700 transition-colors">
+                      <input 
+                        type="checkbox" 
+                        checked={tempColorSettings.enabled}
+                        onChange={(e) => handleTempColorSettingChange("enabled", e.target.checked)}
+                        className="w-4 h-4 rounded text-blue-600 bg-slate-950 border-slate-800 focus:ring-blue-500 cursor-pointer"
+                      />
+                      <span className="text-sm text-slate-300 font-sans">Enable dynamic pool temperature font colors</span>
+                    </label>
+
+                    {tempColorSettings.enabled && (
+                      <div className="grid grid-cols-3 gap-3 bg-slate-950/20 p-4 border border-slate-900/80 rounded-2xl animate-fadeIn">
+                        <div>
+                          <label className="block text-[9px] uppercase font-bold tracking-widest text-slate-500 mb-1.5 font-sans">Warm Min (°F)</label>
+                          <input 
+                            type="number" 
+                            min="50"
+                            max="104"
+                            value={tempColorSettings.warmMin}
+                            onChange={(e) => handleTempColorSettingChange("warmMin", parseInt(e.target.value, 10) || 0)}
+                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500 text-sm transition-all font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] uppercase font-bold tracking-widest text-slate-500 mb-1.5 font-sans">Very Warm Min (°F)</label>
+                          <input 
+                            type="number" 
+                            min="50"
+                            max="104"
+                            value={tempColorSettings.veryWarmMin}
+                            onChange={(e) => handleTempColorSettingChange("veryWarmMin", parseInt(e.target.value, 10) || 0)}
+                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500 text-sm transition-all font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] uppercase font-bold tracking-widest text-slate-500 mb-1.5 font-sans">Hot Min (°F)</label>
+                          <input 
+                            type="number" 
+                            min="50"
+                            max="104"
+                            value={tempColorSettings.hotMin}
+                            onChange={(e) => handleTempColorSettingChange("hotMin", parseInt(e.target.value, 10) || 0)}
+                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500 text-sm transition-all font-mono"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 5. Local Network Access */}
                 {config.localIp && (
                   <div className="bg-blue-500/5 border border-blue-500/15 rounded-2xl p-5">
                     <h3 className="text-sm font-bold uppercase tracking-wider text-blue-400 mb-2 font-sans flex items-center gap-2">

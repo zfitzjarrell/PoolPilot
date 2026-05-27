@@ -543,9 +543,33 @@
           </div>
         </div>
 
+        <!-- Temperature Color Settings -->
+        <div>
+          <div style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: bold; letter-spacing: 1px; margin-bottom: 8px;">4. Temperature Color Settings (Screen Level)</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; background-color: rgba(2, 6, 23, 0.4); border: 1px solid #1e293b; padding: 12px; border-radius: 8px; cursor: pointer;">
+              <input id="temp-color-enabled" type="checkbox" onchange="toggleTempInputsDisplay()" /> Enable dynamic pool temp font colors
+            </label>
+            <div id="temp-thresholds-container" style="display: none; flex-wrap: wrap; gap: 12px; margin-top: 4px; padding: 12px; background-color: rgba(2, 6, 23, 0.2); border: 1px solid #1e293b; border-radius: 8px;">
+              <div style="flex-grow: 1; min-width: 100px;">
+                <label style="display: block; font-size: 10px; color: #94a3b8; font-weight: bold; margin-bottom: 4px;">WARM MIN (°F)</label>
+                <input id="temp-warm-min" type="number" min="50" max="104" style="width: 100%; box-sizing: border-box; padding: 8px; background-color: #020617; border: 1px solid #1e293b; border-radius: 8px; color: #ffffff; font-size: 13px;" />
+              </div>
+              <div style="flex-grow: 1; min-width: 100px;">
+                <label style="display: block; font-size: 10px; color: #94a3b8; font-weight: bold; margin-bottom: 4px;">VERY WARM MIN (°F)</label>
+                <input id="temp-verywarm-min" type="number" min="50" max="104" style="width: 100%; box-sizing: border-box; padding: 8px; background-color: #020617; border: 1px solid #1e293b; border-radius: 8px; color: #ffffff; font-size: 13px;" />
+              </div>
+              <div style="flex-grow: 1; min-width: 100px;">
+                <label style="display: block; font-size: 10px; color: #94a3b8; font-weight: bold; margin-bottom: 4px;">HOT MIN (°F)</label>
+                <input id="temp-hot-min" type="number" min="50" max="104" style="width: 100%; box-sizing: border-box; padding: 8px; background-color: #020617; border: 1px solid #1e293b; border-radius: 8px; color: #ffffff; font-size: 13px;" />
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Local Network Access -->
         <div id="legacy-network-info" style="display: none; background-color: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.15); border-radius: 12px; padding: 16px; font-family: sans-serif; margin-top: 8px;">
-          <div style="font-size: 11px; text-transform: uppercase; color: #38bdf8; font-weight: bold; letter-spacing: 1px; margin-bottom: 6px;">4. Local Network Access</div>
+          <div style="font-size: 11px; text-transform: uppercase; color: #38bdf8; font-weight: bold; letter-spacing: 1px; margin-bottom: 6px;">5. Local Network Access</div>
           <div style="font-size: 12px; color: #94a3b8; line-height: 1.4; margin-bottom: 8px;">
             To open this dashboard on other devices, connect to your home Wi-Fi and open:
           </div>
@@ -596,6 +620,12 @@
       heater: true,
       pump: true
     };
+    var tempColorSettings = {
+      enabled: true,
+      warmMin: 79,
+      veryWarmMin: 84,
+      hotMin: 88
+    };
 
     function loadClientVisibility() {
       var vis = localStorage.getItem('poolpilot_visibility');
@@ -611,6 +641,30 @@
 
     function saveClientVisibility() {
       localStorage.setItem('poolpilot_visibility', JSON.stringify(clientVisibility));
+    }
+
+    function loadTempColorSettings() {
+      var stored = localStorage.getItem('poolpilot_temp_colors');
+      if (stored) {
+        try {
+          var parsed = JSON.parse(stored);
+          for (var k in parsed) {
+            tempColorSettings[k] = parsed[k];
+          }
+        } catch (e) {}
+      }
+    }
+
+    function saveTempColorSettings() {
+      localStorage.setItem('poolpilot_temp_colors', JSON.stringify(tempColorSettings));
+    }
+
+    function toggleTempInputsDisplay() {
+      var enabledEl = document.getElementById('temp-color-enabled');
+      var containerEl = document.getElementById('temp-thresholds-container');
+      if (enabledEl && containerEl) {
+        containerEl.style.display = enabledEl.checked ? 'flex' : 'none';
+      }
     }
 
     function applyCardVisibilities() {
@@ -659,6 +713,13 @@
         document.getElementById('vis-bubbler').checked = !!clientVisibility.bubbler;
         document.getElementById('vis-heater').checked = !!clientVisibility.heater;
         document.getElementById('vis-pump').checked = !!clientVisibility.pump;
+
+        // Populate temp color settings
+        document.getElementById('temp-color-enabled').checked = !!tempColorSettings.enabled;
+        document.getElementById('temp-warm-min').value = tempColorSettings.warmMin;
+        document.getElementById('temp-verywarm-min').value = tempColorSettings.veryWarmMin;
+        document.getElementById('temp-hot-min').value = tempColorSettings.hotMin;
+        toggleTempInputsDisplay();
       }
     }
 
@@ -717,6 +778,13 @@
       clientVisibility.heater = document.getElementById('vis-heater').checked;
       clientVisibility.pump = document.getElementById('vis-pump').checked;
       saveClientVisibility();
+
+      // Save client temp color settings locally
+      tempColorSettings.enabled = document.getElementById('temp-color-enabled').checked;
+      tempColorSettings.warmMin = parseInt(document.getElementById('temp-warm-min').value, 10) || 79;
+      tempColorSettings.veryWarmMin = parseInt(document.getElementById('temp-verywarm-min').value, 10) || 84;
+      tempColorSettings.hotMin = parseInt(document.getElementById('temp-hot-min').value, 10) || 88;
+      saveTempColorSettings();
 
       var xhr = new XMLHttpRequest();
       xhr.open('POST', '/api/config', true);
@@ -790,17 +858,17 @@
                   poolTempEl.innerText = poolTemp;
                   var color = '#38bdf8'; // Blue
                   var unitColor = '#7dd3fc'; // Light blue
-                  if (system.pool_temp !== null && system.pool_temp !== undefined) {
+                  if (tempColorSettings.enabled && system.pool_temp !== null && system.pool_temp !== undefined) {
                     var t = system.pool_temp;
-                    if (t >= 79 && t <= 83) {
-                      color = '#FFCA3A'; // Light yellow
-                      unitColor = '#FFCA3A';
-                    } else if (t >= 84 && t <= 87) {
-                      color = '#FF924C'; // Orange
-                      unitColor = '#FF924C';
-                    } else if (t >= 88) {
+                    if (t >= tempColorSettings.hotMin) {
                       color = '#F94144'; // Red
                       unitColor = '#F94144';
+                    } else if (t >= tempColorSettings.veryWarmMin) {
+                      color = '#FF924C'; // Orange
+                      unitColor = '#FF924C';
+                    } else if (t >= tempColorSettings.warmMin) {
+                      color = '#FFCA3A'; // Light yellow
+                      unitColor = '#FFCA3A';
                     }
                   }
                   poolTempEl.style.color = color;
@@ -1181,6 +1249,7 @@
 
     // Initial config and fetch
     loadClientVisibility();
+    loadTempColorSettings();
     fetchServerConfig(function() {
       applyCardVisibilities();
       fetchData();
