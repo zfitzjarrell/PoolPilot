@@ -429,6 +429,9 @@
             <div class="value-medium" id="heater-summary" style="font-size: 28px;">--</div>
           </div>
           <div style="font-size: 11px; color: #64748b; margin-top: 8px;" id="heater-desc">Heaters inactive</div>
+          <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #1e293b;" id="heater-schedule-box">
+            <div style="font-size: 8px; text-transform: uppercase; color: #64748b; font-weight: bold; letter-spacing: 1px; margin-bottom: 2px;">Schedule</div>
+          </div>
         </div>
       </div>
 
@@ -451,18 +454,29 @@
             <div style="font-size: 8px; text-transform: uppercase; color: #64748b; font-weight: bold; letter-spacing: 1px; margin-bottom: 6px;">Set Color</div>
             <div id="light-colors-grid" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
           </div>
+          <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #1e293b;" id="lights-schedule-box">
+            <div style="font-size: 8px; text-transform: uppercase; color: #64748b; font-weight: bold; letter-spacing: 1px; margin-bottom: 2px;">Schedule</div>
+          </div>
         </div>
       </div>
   
       <!-- Bubbler -->
-      <div class="card w-33" id="bubbler-card" onclick="handleConfirmToggle('aux_3', 'bubbler-status')" style="cursor: pointer;">
+      <div class="card w-33" id="bubbler-card">
         <div class="card-content card-small-content">
-          <div class="card-title">Features</div>
-          <div>
-            <h3 class="card-subtitle" style="margin-bottom:4px;">Bubbler Jets</h3>
-            <div class="value-medium" id="bubbler-status" style="font-size: 28px; text-transform: uppercase;">--</div>
+          <div style="display: flex; justify-content: space-between; align-items: start;">
+            <div>
+              <div class="card-title">Features</div>
+              <h3 class="card-subtitle" style="margin-bottom:4px;">Bubbler Jets</h3>
+            </div>
+            <button id="bubbler-toggle-btn" class="toggle-btn-legacy" style="margin-top: 0; width: auto; padding: 6px 12px;" onclick="handleConfirmToggle('aux_3', 'bubbler-status')">Toggle</button>
           </div>
-          <div style="font-size: 11px; color: #64748b; margin-top: 8px;" id="bubbler-desc">Bubbler standby</div>
+          <div style="margin-top: 8px;">
+            <div class="value-medium" id="bubbler-status" style="font-size: 28px; text-transform: uppercase;">--</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 4px;" id="bubbler-desc">Bubbler standby</div>
+          </div>
+          <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #1e293b;" id="bubbler-schedule-box">
+            <div style="font-size: 8px; text-transform: uppercase; color: #64748b; font-weight: bold; letter-spacing: 1px; margin-bottom: 2px;">Schedule</div>
+          </div>
         </div>
       </div>
     </div>
@@ -584,6 +598,103 @@
           <button type="button" onclick="toggleSettingsModal(false)" style="background-color: transparent; border: 1px solid #1e293b; color: #94a3b8; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px;">Cancel</button>
           <button type="submit" id="save-settings-btn" style="background-color: #2563eb; border: none; color: #ffffff; padding: 8px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 13px;">Save Settings</button>
         </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Schedule Modal -->
+  <div id="schedule-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(2, 6, 23, 0.85); z-index: 1100; align-items: center; justify-content: center; box-sizing: border-box; padding: 20px;">
+    <div style="background-color: #0f172a; border: 1px solid #1e293b; border-radius: 20px; max-width: 400px; width: 100%; box-sizing: border-box; padding: 24px; color: #f8fafc; overflow-y: auto;">
+      <h2 id="sched-modal-title" style="font-size: 18px; font-weight: 700; margin-top: 0; margin-bottom: 16px; border-bottom: 1px solid #1e293b; padding-bottom: 12px; font-family: sans-serif; text-transform: capitalize;">
+        Add Schedule
+      </h2>
+      
+      <form id="schedule-form" onsubmit="saveScheduleLegacy(event)" style="display: flex; flex-direction: column; gap: 16px; font-family: sans-serif;">
+        <!-- 24 Hours Toggle -->
+        <label style="display: flex; align-items: center; gap: 8px; background-color: rgba(2, 6, 23, 0.4); border: 1px solid #1e293b; border-radius: 12px; padding: 12px; cursor: pointer;">
+          <input id="sched-24h" type="checkbox" onchange="toggle24hLegacy()" style="width: 16px; height: 16px; cursor: pointer;" />
+          <span style="font-size: 13px; font-weight: 600; color: #cbd5e1;">Run 24 Hours (All Day)</span>
+        </label>
+
+        <!-- Time Range Inputs -->
+        <div id="sched-time-container" style="display: flex; flex-direction: column; gap: 12px; background-color: rgba(2, 6, 23, 0.4); border: 1px solid rgba(30, 41, 59, 0.6); border-radius: 16px; padding: 16px;">
+          <!-- Start Time -->
+          <div>
+            <label style="display: block; font-size: 10px; color: #64748b; font-weight: bold; margin-bottom: 6px; letter-spacing: 0.5px;">START TIME</label>
+            <div style="display: flex; gap: 8px;">
+              <select id="sched-start-hr" style="flex-grow: 1; padding: 8px; background-color: #0f172a; border: 1px solid #1e293b; border-radius: 8px; color: #ffffff; font-size: 13px;">
+                <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+                <option value="5">5</option><option value="6">6</option><option value="7" selected>7</option><option value="8">8</option>
+                <option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
+              </select>
+              <select id="sched-start-min" style="flex-grow: 1; padding: 8px; background-color: #0f172a; border: 1px solid #1e293b; border-radius: 8px; color: #ffffff; font-size: 13px;">
+                <option value="00" selected>00</option><option value="05">05</option><option value="10">10</option><option value="15">15</option>
+                <option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option>
+                <option value="40">40</option><option value="45">45</option><option value="50">50</option><option value="55">55</option>
+              </select>
+              <select id="sched-start-ampm" style="padding: 8px; background-color: #0f172a; border: 1px solid #1e293b; border-radius: 8px; color: #ffffff; font-size: 13px; width: 70px;">
+                <option value="AM" selected>AM</option>
+                <option value="PM">PM</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- End Time -->
+          <div>
+            <label style="display: block; font-size: 10px; color: #64748b; font-weight: bold; margin-bottom: 6px; letter-spacing: 0.5px;">END TIME</label>
+            <div style="display: flex; gap: 8px;">
+              <select id="sched-end-hr" style="flex-grow: 1; padding: 8px; background-color: #0f172a; border: 1px solid #1e293b; border-radius: 8px; color: #ffffff; font-size: 13px;">
+                <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+                <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+                <option value="9">9</option><option value="10" selected>10</option><option value="11">11</option><option value="12">12</option>
+              </select>
+              <select id="sched-end-min" style="flex-grow: 1; padding: 8px; background-color: #0f172a; border: 1px solid #1e293b; border-radius: 8px; color: #ffffff; font-size: 13px;">
+                <option value="00" selected>00</option><option value="05">05</option><option value="10">10</option><option value="15">15</option>
+                <option value="20">20</option><option value="25">25</option><option value="30">30</option><option value="35">35</option>
+                <option value="40">40</option><option value="45">45</option><option value="50">50</option><option value="55">55</option>
+              </select>
+              <select id="sched-end-ampm" style="padding: 8px; background-color: #0f172a; border: 1px solid #1e293b; border-radius: 8px; color: #ffffff; font-size: 13px; width: 70px;">
+                <option value="AM" selected>AM</option>
+                <option value="PM">PM</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Days Selection -->
+        <div>
+          <label style="display: block; font-size: 10px; color: #64748b; font-weight: bold; margin-bottom: 6px; letter-spacing: 0.5px;">ACTIVE DAYS</label>
+          <select id="sched-days-select" onchange="toggleDaysLegacy()" style="width: 100%; box-sizing: border-box; padding: 8px 12px; background-color: #020617; border: 1px solid #1e293b; border-radius: 8px; color: #ffffff; font-size: 13px;">
+            <option value="everyday">Every Day</option>
+            <option value="weekdays">Weekdays (Mon-Fri)</option>
+            <option value="weekends">Weekends (Sat-Sun)</option>
+            <option value="custom">Custom Days</option>
+          </select>
+          
+          <div id="sched-custom-days-container" style="display: none; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; background-color: rgba(2, 6, 23, 0.2); border: 1px solid rgba(30, 41, 59, 0.6); border-radius: 12px; padding: 12px;">
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 11px;"><input type="checkbox" class="sched-day-check" value="Mon" checked />Mon</label>
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 11px;"><input type="checkbox" class="sched-day-check" value="Tue" checked />Tue</label>
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 11px;"><input type="checkbox" class="sched-day-check" value="Wed" checked />Wed</label>
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 11px;"><input type="checkbox" class="sched-day-check" value="Thu" checked />Thu</label>
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 11px;"><input type="checkbox" class="sched-day-check" value="Fri" checked />Fri</label>
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 11px;"><input type="checkbox" class="sched-day-check" value="Sat" checked />Sat</label>
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 11px;"><input type="checkbox" class="sched-day-check" value="Sun" checked />Sun</label>
+          </div>
+        </div>
+
+        <!-- Warning Box -->
+        <div id="sched-warning-box" style="display: none; background-color: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: #fbbf24; border-radius: 12px; padding: 12px; font-size: 12px; font-weight: bold; line-height: 1.4;">
+          Warning: This schedule is an exact duplicate of an existing schedule.
+        </div>
+
+        <!-- Buttons -->
+        <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; border-top: 1px solid #1e293b; padding-top: 12px;">
+          <button type="button" onclick="toggleScheduleModal(false)" style="padding: 8px 16px; background-color: #020617; border: 1px solid #1e293b; border-radius: 8px; color: #94a3b8; font-size: 13px; cursor: pointer; font-weight: bold;">Cancel</button>
+          <button type="submit" style="padding: 8px 20px; background-color: #2563eb; border: none; border-radius: 8px; color: #ffffff; font-size: 13px; cursor: pointer; font-weight: bold;">Save Schedule</button>
+        </div>
+      </form>
+    </div>
+  </div>
       </form>
     </div>
   </div>
@@ -797,8 +908,9 @@
               var res = JSON.parse(xhr.responseText);
               if (res.success) {
                 toggleSettingsModal(false);
-                fetchServerConfig(function() {
+                 fetchServerConfig(function() {
                   applyCardVisibilities();
+                  renderSchedules();
                   fetchData();
                 });
               } else {
@@ -1193,65 +1305,454 @@
       xhr.send();
     }
 
-    // Schedules Configuration
-    var SCHEDULES = {
-      pool_pump: ["24 hrs, Every Day"],
-      cleaner: ["7:00 AM - 10:00 AM, Every Day"]
-    };
+    // Schedules helper functions (ES5)
+    function getDeviceSchedules(deviceKey) {
+      var schedules = serverConfig.schedules;
+      if (!schedules) return [];
+      if (deviceKey === 'pump') {
+        return schedules.pump || schedules.pool_pump || [];
+      }
+      return schedules[deviceKey] || [];
+    }
 
-    function renderSchedules() {
-      var pumpScheds = SCHEDULES.pool_pump;
-      var cleanerScheds = SCHEDULES.cleaner;
+    function formatScheduleStringLegacy(is24Hours, startHr, startMin, startAmpm, endHr, endMin, endAmpm, dayType, customDays) {
+      var timeStr = "";
+      if (is24Hours) {
+        timeStr = "24 hrs";
+      } else {
+        timeStr = startHr + ":" + startMin + " " + startAmpm + " - " + endHr + ":" + endMin + " " + endAmpm;
+      }
       
-      var uniquePump = [];
-      for (var i = 0; i < pumpScheds.length; i++) {
-        if (uniquePump.indexOf(pumpScheds[i]) === -1) {
-          uniquePump.push(pumpScheds[i]);
+      var dayStr = "";
+      if (dayType === "everyday") {
+        dayStr = "Every Day";
+      } else if (dayType === "weekdays") {
+        dayStr = "Weekdays";
+      } else if (dayType === "weekends") {
+        dayStr = "Weekends";
+      } else {
+        if (customDays.length === 7) {
+          dayStr = "Every Day";
+        } else if (customDays.length === 5 && customDays.indexOf("Sat") === -1 && customDays.indexOf("Sun") === -1) {
+          dayStr = "Weekdays";
+        } else if (customDays.length === 2 && customDays.indexOf("Sat") !== -1 && customDays.indexOf("Sun") !== -1) {
+          dayStr = "Weekends";
+        } else if (customDays.length === 0) {
+          dayStr = "Every Day";
+        } else {
+          var dayOrder = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+          var sortedDays = [];
+          for (var i = 0; i < dayOrder.length; i++) {
+            if (customDays.indexOf(dayOrder[i]) !== -1) {
+              sortedDays.push(dayOrder[i]);
+            }
+          }
+          dayStr = sortedDays.join(", ");
         }
       }
       
-      var uniqueCleaner = [];
-      for (var j = 0; j < cleanerScheds.length; j++) {
-        if (uniqueCleaner.indexOf(cleanerScheds[j]) === -1) {
-          uniqueCleaner.push(cleanerScheds[j]);
+      return timeStr + ", " + dayStr;
+    }
+
+    function parseScheduleStringLegacy(scheduleStr) {
+      var defaults = {
+        is24Hours: false,
+        startHr: "7",
+        startMin: "00",
+        startAmpm: "AM",
+        endHr: "10",
+        endMin: "00",
+        endAmpm: "AM",
+        dayType: "everyday",
+        customDays: []
+      };
+      
+      if (!scheduleStr) return defaults;
+      
+      var parts = scheduleStr.split(",");
+      if (parts.length < 2) return defaults;
+      
+      var timePart = parts[0].trim();
+      var dayPart = parts[1].trim();
+      
+      if (timePart.toLowerCase() === "24 hrs") {
+        defaults.is24Hours = true;
+      } else {
+        var timeMatch = timePart.match(/(\d+):(\d+)\s*(AM|PM)\s*-\s*(\d+):(\d+)\s*(AM|PM)/i);
+        if (timeMatch) {
+          defaults.startHr = timeMatch[1];
+          defaults.startMin = timeMatch[2];
+          defaults.startAmpm = timeMatch[3].toUpperCase();
+          defaults.endHr = timeMatch[4];
+          defaults.endMin = timeMatch[5];
+          defaults.endAmpm = timeMatch[6].toUpperCase();
         }
       }
       
-      var pumpBox = document.getElementById('pump-schedule-box');
-      if (pumpBox) {
-        for (var k = 0; k < uniquePump.length; k++) {
-          var p = document.createElement('div');
-          p.style.fontSize = '12px';
-          p.style.color = 'rgba(255, 255, 255, 0.9)';
-          p.style.fontWeight = '500';
-          p.style.marginTop = '2px';
-          p.innerText = uniquePump[k];
-          pumpBox.appendChild(p);
-        }
+      if (dayPart.toLowerCase() === "every day") {
+        defaults.dayType = "everyday";
+        defaults.customDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+      } else if (dayPart.toLowerCase() === "weekdays") {
+        defaults.dayType = "weekdays";
+        defaults.customDays = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+      } else if (dayPart.toLowerCase() === "weekends") {
+        defaults.dayType = "weekends";
+        defaults.customDays = ["Sat", "Sun"];
+      } else {
+        defaults.dayType = "custom";
+        defaults.customDays = dayPart.split(",").map(function(d) { return d.trim(); });
       }
       
-      var cleanerBox = document.getElementById('cleaner-schedule-box');
-      if (cleanerBox) {
-        for (var m = 0; m < uniqueCleaner.length; m++) {
-          var p = document.createElement('div');
-          p.style.fontSize = '12px';
-          p.style.color = '#cbd5e1';
-          p.style.fontWeight = '500';
-          p.style.marginTop = '2px';
-          p.innerText = uniqueCleaner[m];
-          cleanerBox.appendChild(p);
-        }
+      return defaults;
+    }
+
+    var currentModalDevice = "";
+    var currentModalIndex = null;
+    var currentModalMode = "add";
+
+    function toggleScheduleModal(show) {
+      var modal = document.getElementById("schedule-modal");
+      if (modal) {
+        modal.style.display = show ? "flex" : "none";
       }
     }
 
-    // Render schedules on page load
-    renderSchedules();
+    function toggle24hLegacy() {
+      var is24h = document.getElementById("sched-24h").checked;
+      document.getElementById("sched-time-container").style.display = is24h ? "none" : "flex";
+    }
+
+    function toggleDaysLegacy() {
+      var select = document.getElementById("sched-days-select").value;
+      var container = document.getElementById("sched-custom-days-container");
+      container.style.display = (select === "custom") ? "grid" : "none";
+      
+      if (select === "everyday") {
+        setCheckboxesLegacy(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]);
+      } else if (select === "weekdays") {
+        setCheckboxesLegacy(["Mon", "Tue", "Wed", "Thu", "Fri"]);
+      } else if (select === "weekends") {
+        setCheckboxesLegacy(["Sat", "Sun"]);
+      }
+    }
+
+    function setCheckboxesLegacy(daysList) {
+      var checks = document.getElementsByClassName("sched-day-check");
+      for (var i = 0; i < checks.length; i++) {
+        checks[i].checked = (daysList.indexOf(checks[i].value) !== -1);
+      }
+    }
+
+    function checkDuplicateLegacy() {
+      var is24h = document.getElementById("sched-24h").checked;
+      var startHr = document.getElementById("sched-start-hr").value;
+      var startMin = document.getElementById("sched-start-min").value;
+      var startAmpm = document.getElementById("sched-start-ampm").value;
+      var endHr = document.getElementById("sched-end-hr").value;
+      var endMin = document.getElementById("sched-end-min").value;
+      var endAmpm = document.getElementById("sched-end-ampm").value;
+      var dayType = document.getElementById("sched-days-select").value;
+      
+      var customDays = [];
+      var checks = document.getElementsByClassName("sched-day-check");
+      for (var i = 0; i < checks.length; i++) {
+        if (checks[i].checked) {
+          customDays.push(checks[i].value);
+        }
+      }
+      
+      var formatted = formatScheduleStringLegacy(is24h, startHr, startMin, startAmpm, endHr, endMin, endAmpm, dayType, customDays);
+      var scheds = getDeviceSchedules(currentModalDevice);
+      var isDuplicate = false;
+      for (var j = 0; j < scheds.length; j++) {
+        if (currentModalMode === "edit" && j === currentModalIndex) continue;
+        if (scheds[j].trim() === formatted.trim()) {
+          isDuplicate = true;
+          break;
+        }
+      }
+      
+      var warningBox = document.getElementById("sched-warning-box");
+      if (warningBox) {
+        warningBox.style.display = isDuplicate ? "block" : "none";
+      }
+    }
+
+    // Bind event listeners for duplicate warning check
+    var fields = ["sched-24h", "sched-start-hr", "sched-start-min", "sched-start-ampm", "sched-end-hr", "sched-end-min", "sched-end-ampm", "sched-days-select"];
+    for (var f = 0; f < fields.length; f++) {
+      var el = document.getElementById(fields[f]);
+      if (el) {
+        el.addEventListener("change", checkDuplicateLegacy);
+      }
+    }
+    var dayChecks = document.getElementsByClassName("sched-day-check");
+    for (var c = 0; c < dayChecks.length; c++) {
+      dayChecks[c].addEventListener("change", checkDuplicateLegacy);
+    }
+
+    function openAddScheduleLegacy(device) {
+      currentModalMode = "add";
+      currentModalDevice = device;
+      currentModalIndex = null;
+      
+      document.getElementById("sched-modal-title").innerText = "Add Schedule (" + device.replace("_", " ") + ")";
+      document.getElementById("sched-24h").checked = false;
+      document.getElementById("sched-start-hr").value = "7";
+      document.getElementById("sched-start-min").value = "00";
+      document.getElementById("sched-start-ampm").value = "AM";
+      document.getElementById("sched-end-hr").value = "10";
+      document.getElementById("sched-end-min").value = "00";
+      document.getElementById("sched-end-ampm").value = "AM";
+      document.getElementById("sched-days-select").value = "everyday";
+      
+      toggle24hLegacy();
+      toggleDaysLegacy();
+      checkDuplicateLegacy();
+      toggleScheduleModal(true);
+    }
+
+    function openEditScheduleLegacy(device, index, currentVal) {
+      currentModalMode = "edit";
+      currentModalDevice = device;
+      currentModalIndex = index;
+      
+      document.getElementById("sched-modal-title").innerText = "Edit Schedule (" + device.replace("_", " ") + ")";
+      
+      var parsed = parseScheduleStringLegacy(currentVal);
+      document.getElementById("sched-24h").checked = parsed.is24Hours;
+      document.getElementById("sched-start-hr").value = parsed.startHr;
+      document.getElementById("sched-start-min").value = parsed.startMin;
+      document.getElementById("sched-start-ampm").value = parsed.startAmpm;
+      document.getElementById("sched-end-hr").value = parsed.endHr;
+      document.getElementById("sched-end-min").value = parsed.endMin;
+      document.getElementById("sched-end-ampm").value = parsed.endAmpm;
+      document.getElementById("sched-days-select").value = parsed.dayType;
+      
+      toggle24hLegacy();
+      toggleDaysLegacy();
+      setCheckboxesLegacy(parsed.customDays);
+      checkDuplicateLegacy();
+      toggleScheduleModal(true);
+    }
+
+    function saveScheduleLegacy(event) {
+      if (event && event.preventDefault) event.preventDefault();
+      
+      var is24h = document.getElementById("sched-24h").checked;
+      var startHr = document.getElementById("sched-start-hr").value;
+      var startMin = document.getElementById("sched-start-min").value;
+      var startAmpm = document.getElementById("sched-start-ampm").value;
+      var endHr = document.getElementById("sched-end-hr").value;
+      var endMin = document.getElementById("sched-end-min").value;
+      var endAmpm = document.getElementById("sched-end-ampm").value;
+      var dayType = document.getElementById("sched-days-select").value;
+      
+      var customDays = [];
+      var checks = document.getElementsByClassName("sched-day-check");
+      for (var i = 0; i < checks.length; i++) {
+        if (checks[i].checked) {
+          customDays.push(checks[i].value);
+        }
+      }
+      
+      var formatted = formatScheduleStringLegacy(is24h, startHr, startMin, startAmpm, endHr, endMin, endAmpm, dayType, customDays);
+      
+      if (!serverConfig.schedules) {
+        serverConfig.schedules = {};
+      }
+      if (!serverConfig.schedules[currentModalDevice]) {
+        serverConfig.schedules[currentModalDevice] = [];
+      }
+      
+      var deviceSchedules = serverConfig.schedules[currentModalDevice];
+      if (currentModalMode === "edit" && currentModalIndex !== null) {
+        deviceSchedules[currentModalIndex] = formatted;
+      } else {
+        deviceSchedules.push(formatted);
+      }
+      
+      serverConfig.schedules[currentModalDevice] = deviceSchedules;
+      
+      var xhr = new XMLHttpRequest();
+      xhr.open("POST", "/api/schedules", true);
+      xhr.setRequestHeader("Content-Type", "application/json");
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            try {
+              var res = JSON.parse(xhr.responseText);
+              if (res.success) {
+                toggleScheduleModal(false);
+                renderSchedules();
+              } else {
+                alert(res.error || "Failed to save schedule");
+              }
+            } catch(e) {
+              alert("Parse error: " + e.message);
+            }
+          } else {
+            alert("Server error: " + xhr.status);
+          }
+        }
+      };
+      xhr.send(JSON.stringify({ schedules: serverConfig.schedules }));
+    }
+
+    function deleteScheduleLegacy(device, index) {
+      if (!confirm("Are you sure you want to delete this schedule?")) return;
+      
+      if (serverConfig.schedules && serverConfig.schedules[device]) {
+        serverConfig.schedules[device].splice(index, 1);
+        
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "/api/schedules", true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.onreadystatechange = function() {
+          if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+              try {
+                var res = JSON.parse(xhr.responseText);
+                if (res.success) {
+                  renderSchedules();
+                } else {
+                  alert(res.error || "Failed to delete schedule");
+                }
+              } catch(e) {
+                alert("Parse error: " + e.message);
+              }
+            } else {
+              alert("Server error: " + xhr.status);
+            }
+          }
+        };
+        xhr.send(JSON.stringify({ schedules: serverConfig.schedules }));
+      }
+    }
+
+    function renderSchedules() {
+      var devices = ["pump", "cleaner", "heater", "lights", "bubbler"];
+      for (var d = 0; d < devices.length; d++) {
+        var dev = devices[d];
+        var boxId = dev + "-schedule-box";
+        if (dev === "lights") boxId = "lights-schedule-box";
+        
+        var box = document.getElementById(boxId);
+        if (!box) continue;
+        
+        box.innerHTML = "";
+        
+        var headerRow = document.createElement("div");
+        headerRow.style.display = "flex";
+        headerRow.style.justifyContent = "space-between";
+        headerRow.style.alignItems = "center";
+        headerRow.style.marginBottom = "6px";
+        
+        var titleEl = document.createElement("div");
+        titleEl.style.fontSize = "8px";
+        titleEl.style.textTransform = "uppercase";
+        titleEl.style.color = (dev === "pump") ? "rgba(255, 255, 255, 0.6)" : "#64748b";
+        titleEl.style.fontWeight = "bold";
+        titleEl.style.letterSpacing = "1px";
+        titleEl.innerText = "Schedule";
+        headerRow.appendChild(titleEl);
+        
+        var addBtn = document.createElement("button");
+        addBtn.style.background = "none";
+        addBtn.style.border = "none";
+        addBtn.style.color = (dev === "pump") ? "#e0f2fe" : "#38bdf8";
+        addBtn.style.fontSize = "9px";
+        addBtn.style.textTransform = "uppercase";
+        addBtn.style.fontWeight = "bold";
+        addBtn.style.cursor = "pointer";
+        addBtn.style.padding = "0";
+        addBtn.innerText = "+ Add";
+        (function(dKey) {
+          addBtn.onclick = function(e) {
+            if (e && e.stopPropagation) e.stopPropagation();
+            openAddScheduleLegacy(dKey);
+          };
+        })(dev);
+        headerRow.appendChild(addBtn);
+        box.appendChild(headerRow);
+        
+        var scheds = getDeviceSchedules(dev);
+        if (scheds.length === 0) {
+          var noEl = document.createElement("div");
+          noEl.style.fontSize = "11px";
+          noEl.style.color = (dev === "pump") ? "rgba(255, 255, 255, 0.5)" : "#64748b";
+          noEl.style.fontStyle = "italic";
+          noEl.style.marginTop = "2px";
+          noEl.innerText = "No schedules configured";
+          box.appendChild(noEl);
+        } else {
+          for (var j = 0; j < scheds.length; j++) {
+            var sched = scheds[j];
+            
+            var row = document.createElement("div");
+            row.style.display = "flex";
+            row.style.justifyContent = "space-between";
+            row.style.alignItems = "center";
+            row.style.marginTop = "4px";
+            
+            var textEl = document.createElement("div");
+            textEl.style.fontSize = "11px";
+            textEl.style.color = (dev === "pump") ? "rgba(255, 255, 255, 0.95)" : "#cbd5e1";
+            textEl.style.fontWeight = "500";
+            textEl.innerText = sched;
+            row.appendChild(textEl);
+            
+            var btnGroup = document.createElement("div");
+            btnGroup.style.display = "flex";
+            btnGroup.style.gap = "8px";
+            
+            var editBtn = document.createElement("button");
+            editBtn.style.background = "none";
+            editBtn.style.border = "none";
+            editBtn.style.color = (dev === "pump") ? "#bae6fd" : "#38bdf8";
+            editBtn.style.fontSize = "10px";
+            editBtn.style.fontWeight = "600";
+            editBtn.style.cursor = "pointer";
+            editBtn.style.padding = "0";
+            editBtn.innerText = "Edit";
+            (function(dKey, idx, val) {
+              editBtn.onclick = function(e) {
+                if (e && e.stopPropagation) e.stopPropagation();
+                openEditScheduleLegacy(dKey, idx, val);
+              };
+            })(dev, j, sched);
+            btnGroup.appendChild(editBtn);
+            
+            var delBtn = document.createElement("button");
+            delBtn.style.background = "none";
+            delBtn.style.border = "none";
+            delBtn.style.color = (dev === "pump") ? "#fca5a5" : "#f87171";
+            delBtn.style.fontSize = "10px";
+            delBtn.style.fontWeight = "600";
+            delBtn.style.cursor = "pointer";
+            delBtn.style.padding = "0";
+            delBtn.innerText = "Delete";
+            (function(dKey, idx) {
+              delBtn.onclick = function(e) {
+                if (e && e.stopPropagation) e.stopPropagation();
+                deleteScheduleLegacy(dKey, idx);
+              };
+            })(dev, j);
+            btnGroup.appendChild(delBtn);
+            
+            row.appendChild(btnGroup);
+            box.appendChild(row);
+          }
+        }
+      }
+    }
 
     // Initial config and fetch
     loadClientVisibility();
     loadTempColorSettings();
     fetchServerConfig(function() {
       applyCardVisibilities();
+      renderSchedules();
       fetchData();
     });
 

@@ -22,12 +22,30 @@ interface Config {
     heater: boolean;
     pump: boolean;
   };
+  schedules?: {
+    pump?: string[];
+    cleaner?: string[];
+    lights?: string[];
+    bubbler?: string[];
+    heater?: string[];
+    [key: string]: string[] | undefined;
+  };
 }
 
 function loadConfig(): Config {
   if (fs.existsSync(CONFIG_PATH)) {
     try {
-      return JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8"));
+      const config = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8"));
+      if (!config.schedules) {
+        config.schedules = {
+          pump: ["24 hrs, Every Day"],
+          cleaner: ["7:00 AM - 10:00 AM, Every Day"],
+          lights: [],
+          bubbler: [],
+          heater: []
+        };
+      }
+      return config;
     } catch (e) {
       console.error("Error reading config.json, using default:", e);
     }
@@ -41,6 +59,13 @@ function loadConfig(): Config {
       bubbler: true,
       heater: true,
       pump: true
+    },
+    schedules: {
+      pump: ["24 hrs, Every Day"],
+      cleaner: ["7:00 AM - 10:00 AM, Every Day"],
+      lights: [],
+      bubbler: [],
+      heater: []
     }
   };
 }
@@ -89,6 +114,13 @@ async function startServer() {
         bubbler: true,
         heater: true,
         pump: true
+      },
+      schedules: config.schedules || {
+        pump: ["24 hrs, Every Day"],
+        cleaner: ["7:00 AM - 10:00 AM, Every Day"],
+        lights: [],
+        bubbler: [],
+        heater: []
       },
       localIp: getLocalIpAddress(),
       port: PORT
@@ -159,6 +191,22 @@ async function startServer() {
         }
       }
     );
+  });
+
+  app.post("/api/schedules", (req, res) => {
+    const { schedules } = req.body;
+    if (!schedules) {
+      return res.status(400).json({ success: false, error: "Missing schedules data" });
+    }
+    
+    const config = loadConfig();
+    config.schedules = schedules;
+    
+    if (saveConfig(config)) {
+      res.json({ success: true, message: "Schedules updated successfully" });
+    } else {
+      res.status(500).json({ error: "Failed to save configuration file" });
+    }
   });
 
   // Add a route to trigger the python script

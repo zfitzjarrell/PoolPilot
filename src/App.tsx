@@ -51,13 +51,108 @@ const COLOR_PRESETS: { [key: string]: { bg: string, label: string } } = {
   "Disco Tech": { bg: "bg-gradient-to-br from-rose-500 via-yellow-500 to-cyan-500", label: "Disco Tech" },
 };
 
-const SCHEDULES = {
-  pool_pump: ["24 hrs, Every Day"],
-  cleaner: ["7:00 AM - 10:00 AM, Every Day"]
+const getDeviceSchedules = (schedules: any, deviceKey: string): string[] => {
+  if (!schedules) return [];
+  if (deviceKey === "pump") {
+    return schedules.pump || schedules.pool_pump || [];
+  }
+  return schedules[deviceKey] || [];
 };
 
-const getUniqueSchedules = (schedules: string[]) => {
-  return Array.from(new Set(schedules));
+const formatScheduleString = (
+  is24Hours: boolean, 
+  startHr: string, 
+  startMin: string, 
+  startAmpm: string, 
+  endHr: string, 
+  endMin: string, 
+  endAmpm: string, 
+  dayType: string, 
+  customDays: string[]
+): string => {
+  let timeStr = "";
+  if (is24Hours) {
+    timeStr = "24 hrs";
+  } else {
+    timeStr = `${startHr}:${startMin} ${startAmpm} - ${endHr}:${endMin} ${endAmpm}`;
+  }
+  
+  let dayStr = "";
+  if (dayType === "everyday") {
+    dayStr = "Every Day";
+  } else if (dayType === "weekdays") {
+    dayStr = "Weekdays";
+  } else if (dayType === "weekends") {
+    dayStr = "Weekends";
+  } else {
+    if (customDays.length === 7) {
+      dayStr = "Every Day";
+    } else if (customDays.length === 5 && !customDays.includes("Sat") && !customDays.includes("Sun")) {
+      dayStr = "Weekdays";
+    } else if (customDays.length === 2 && customDays.includes("Sat") && customDays.includes("Sun")) {
+      dayStr = "Weekends";
+    } else if (customDays.length === 0) {
+      dayStr = "Every Day";
+    } else {
+      const dayOrder = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+      const sortedDays = dayOrder.filter(d => customDays.includes(d));
+      dayStr = sortedDays.join(", ");
+    }
+  }
+  
+  return `${timeStr}, ${dayStr}`;
+};
+
+const parseScheduleString = (scheduleStr: string) => {
+  const defaults = {
+    is24Hours: false,
+    startHr: "7",
+    startMin: "00",
+    startAmpm: "AM",
+    endHr: "10",
+    endMin: "00",
+    endAmpm: "AM",
+    dayType: "everyday",
+    customDays: [] as string[]
+  };
+  
+  if (!scheduleStr) return defaults;
+  
+  const parts = scheduleStr.split(",");
+  if (parts.length < 2) return defaults;
+  
+  const timePart = parts[0].trim();
+  const dayPart = parts[1].trim();
+  
+  if (timePart.toLowerCase() === "24 hrs") {
+    defaults.is24Hours = true;
+  } else {
+    const timeMatch = timePart.match(/(\d+):(\d+)\s*(AM|PM)\s*-\s*(\d+):(\d+)\s*(AM|PM)/i);
+    if (timeMatch) {
+      defaults.startHr = timeMatch[1];
+      defaults.startMin = timeMatch[2];
+      defaults.startAmpm = timeMatch[3].toUpperCase();
+      defaults.endHr = timeMatch[4];
+      defaults.endMin = timeMatch[5];
+      defaults.endAmpm = timeMatch[6].toUpperCase();
+    }
+  }
+  
+  if (dayPart.toLowerCase() === "every day") {
+    defaults.dayType = "everyday";
+    defaults.customDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  } else if (dayPart.toLowerCase() === "weekdays") {
+    defaults.dayType = "weekdays";
+    defaults.customDays = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+  } else if (dayPart.toLowerCase() === "weekends") {
+    defaults.dayType = "weekends";
+    defaults.customDays = ["Sat", "Sun"];
+  } else {
+    defaults.dayType = "custom";
+    defaults.customDays = dayPart.split(",").map(d => d.trim());
+  }
+  
+  return defaults;
 };
 
 export default function App() {
@@ -78,11 +173,35 @@ export default function App() {
       bubbler: true,
       heater: true,
       pump: true
+    },
+    schedules: {
+      pump: ["24 hrs, Every Day"],
+      cleaner: ["7:00 AM - 10:00 AM, Every Day"],
+      lights: [],
+      bubbler: [],
+      heater: []
     }
   });
   const [usernameInput, setUsernameInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
   const [savingConfig, setSavingConfig] = useState(false);
+
+  // Schedule modal states
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [scheduleModalMode, setScheduleModalMode] = useState<"add" | "edit">("add");
+  const [scheduleModalDevice, setScheduleModalDevice] = useState<string>("");
+  const [scheduleModalIndex, setScheduleModalIndex] = useState<number | null>(null);
+
+  const [schedIs24Hours, setSchedIs24Hours] = useState(false);
+  const [schedStartHr, setSchedStartHr] = useState("7");
+  const [schedStartMin, setSchedStartMin] = useState("00");
+  const [schedStartAmpm, setSchedStartAmpm] = useState("AM");
+  const [schedEndHr, setSchedEndHr] = useState("10");
+  const [schedEndMin, setSchedEndMin] = useState("00");
+  const [schedEndAmpm, setSchedEndAmpm] = useState("AM");
+  const [schedDayType, setSchedDayType] = useState("everyday");
+  const [schedCustomDays, setSchedCustomDays] = useState<string[]>([]);
+  const [schedWarning, setSchedWarning] = useState<string | null>(null);
 
   const [visibility, setVisibility] = useState<any>({
     lights: true,
@@ -141,6 +260,187 @@ export default function App() {
       if (bubblerTimeoutRef.current) clearTimeout(bubblerTimeoutRef.current);
     };
   }, []);
+
+  // Schedule management handlers
+  useEffect(() => {
+    if (!showScheduleModal || !scheduleModalDevice) return;
+    
+    const formatted = formatScheduleString(
+      schedIs24Hours,
+      schedStartHr,
+      schedStartMin,
+      schedStartAmpm,
+      schedEndHr,
+      schedEndMin,
+      schedEndAmpm,
+      schedDayType,
+      schedCustomDays
+    );
+    
+    const deviceSchedules = getDeviceSchedules(config.schedules, scheduleModalDevice);
+    
+    const isDuplicate = deviceSchedules.some((s: string, idx: number) => {
+      if (scheduleModalMode === "edit" && idx === scheduleModalIndex) return false;
+      return s.trim() === formatted.trim();
+    });
+    
+    if (isDuplicate) {
+      setSchedWarning("Warning: This schedule is an exact duplicate of an existing schedule.");
+    } else {
+      setSchedWarning(null);
+    }
+  }, [
+    showScheduleModal,
+    scheduleModalDevice,
+    scheduleModalMode,
+    scheduleModalIndex,
+    schedIs24Hours,
+    schedStartHr,
+    schedStartMin,
+    schedStartAmpm,
+    schedEndHr,
+    schedEndMin,
+    schedEndAmpm,
+    schedDayType,
+    schedCustomDays,
+    config.schedules
+  ]);
+
+  const openAddSchedule = (device: string) => {
+    setScheduleModalMode("add");
+    setScheduleModalDevice(device);
+    setScheduleModalIndex(null);
+    
+    setSchedIs24Hours(false);
+    setSchedStartHr("7");
+    setSchedStartMin("00");
+    setSchedStartAmpm("AM");
+    setSchedEndHr("10");
+    setSchedEndMin("00");
+    setSchedEndAmpm("AM");
+    setSchedDayType("everyday");
+    setSchedCustomDays(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]);
+    setSchedWarning(null);
+    
+    setShowScheduleModal(true);
+  };
+
+  const openEditSchedule = (device: string, index: number, currentVal: string) => {
+    setScheduleModalMode("edit");
+    setScheduleModalDevice(device);
+    setScheduleModalIndex(index);
+    
+    const parsed = parseScheduleString(currentVal);
+    setSchedIs24Hours(parsed.is24Hours);
+    setSchedStartHr(parsed.startHr);
+    setSchedStartMin(parsed.startMin);
+    setSchedStartAmpm(parsed.startAmpm);
+    setSchedEndHr(parsed.endHr);
+    setSchedEndMin(parsed.endMin);
+    setSchedEndAmpm(parsed.endAmpm);
+    setSchedDayType(parsed.dayType);
+    setSchedCustomDays(parsed.customDays.length > 0 ? parsed.customDays : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]);
+    setSchedWarning(null);
+    
+    setShowScheduleModal(true);
+  };
+
+  const handleSaveSchedule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const formatted = formatScheduleString(
+      schedIs24Hours,
+      schedStartHr,
+      schedStartMin,
+      schedStartAmpm,
+      schedEndHr,
+      schedEndMin,
+      schedEndAmpm,
+      schedDayType,
+      schedCustomDays
+    );
+    
+    const currentSchedules = { ...config.schedules };
+    if (!currentSchedules[scheduleModalDevice]) {
+      currentSchedules[scheduleModalDevice] = [];
+    }
+    
+    const deviceSchedules = [...currentSchedules[scheduleModalDevice]];
+    
+    if (scheduleModalMode === "edit" && scheduleModalIndex !== null) {
+      deviceSchedules[scheduleModalIndex] = formatted;
+    } else {
+      deviceSchedules.push(formatted);
+    }
+    
+    currentSchedules[scheduleModalDevice] = deviceSchedules;
+    
+    try {
+      const res = await fetch("/api/schedules", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ schedules: currentSchedules }),
+      });
+      
+      let json: any = {};
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        json = await res.json();
+      }
+      
+      if (res.ok && json.success) {
+        setConfig((prev: any) => ({
+          ...prev,
+          schedules: currentSchedules
+        }));
+        setShowScheduleModal(false);
+      } else {
+        alert(json.error || "Failed to save schedule");
+      }
+    } catch (err: any) {
+      alert("Error saving schedule: " + err.message);
+    }
+  };
+
+  const handleDeleteSchedule = async (device: string, index: number) => {
+    if (!confirm("Are you sure you want to delete this schedule?")) return;
+    
+    const currentSchedules = { ...config.schedules };
+    if (currentSchedules[device]) {
+      const deviceSchedules = [...currentSchedules[device]];
+      deviceSchedules.splice(index, 1);
+      currentSchedules[device] = deviceSchedules;
+      
+      try {
+        const res = await fetch("/api/schedules", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ schedules: currentSchedules }),
+        });
+        
+        let json: any = {};
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          json = await res.json();
+        }
+        
+        if (res.ok && json.success) {
+          setConfig((prev: any) => ({
+            ...prev,
+            schedules: currentSchedules
+          }));
+        } else {
+          alert(json.error || "Failed to delete schedule");
+        }
+      } catch (err: any) {
+        alert("Error deleting schedule: " + err.message);
+      }
+    }
+  };
 
   const openSettings = () => {
     if (!showSettings) {
@@ -602,11 +902,41 @@ export default function App() {
                         {toggling === "aux_1" ? "Updating..." : system.cleaner ? "Turn Off" : "Turn On"}
                       </button>
                     </div>
-                    <div className="mt-4 pt-3 border-t border-slate-900/50 flex flex-col gap-1">
-                      <p className="text-[8px] uppercase tracking-widest text-slate-500 font-bold font-sans">Schedule</p>
-                      {getUniqueSchedules(SCHEDULES.cleaner).map((sched, idx) => (
-                        <p key={idx} className="text-xs text-slate-400 font-medium font-sans">{sched}</p>
-                      ))}
+                    <div className="mt-4 pt-3 border-t border-slate-900/50 flex flex-col gap-1.5">
+                      <div className="flex justify-between items-center mb-1">
+                        <p className="text-[8px] uppercase tracking-widest text-slate-500 font-bold font-sans">Schedule</p>
+                        <button 
+                          onClick={() => openAddSchedule("cleaner")}
+                          className="text-[9px] uppercase tracking-widest text-blue-400 hover:text-blue-300 font-bold font-sans cursor-pointer focus:outline-none"
+                        >
+                          + Add
+                        </button>
+                      </div>
+                      {getDeviceSchedules(config.schedules, "cleaner").length === 0 ? (
+                        <p className="text-xs text-slate-500 italic font-sans font-medium">No schedules configured</p>
+                      ) : (
+                        getDeviceSchedules(config.schedules, "cleaner").map((sched: string, idx: number) => (
+                          <div key={idx} className="flex justify-between items-center py-0.5">
+                            <p className="text-xs text-slate-400 font-medium font-sans">{sched}</p>
+                            <div className="flex gap-3">
+                              <button 
+                                onClick={() => openEditSchedule("cleaner", idx, sched)}
+                                className="text-[10px] text-blue-400 hover:text-blue-300 font-semibold font-sans cursor-pointer focus:outline-none"
+                                title="Edit Schedule"
+                              >
+                                Edit
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteSchedule("cleaner", idx)}
+                                className="text-[10px] text-red-500/80 hover:text-red-400 font-semibold font-sans cursor-pointer focus:outline-none"
+                                title="Delete Schedule"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 )}
@@ -629,25 +959,58 @@ export default function App() {
                         {system.pool_pump ? "Flow Rate: Active • 2450 RPM" : "Scheduled cycle off"}
                       </p>
                     </div>
-                    <div className="mt-4 pt-3 border-t border-white/15 flex flex-col gap-1">
-                      <p className="text-[8px] uppercase tracking-widest text-white/70 font-bold font-sans">Schedule</p>
-                      {getUniqueSchedules(SCHEDULES.pool_pump).map((sched, idx) => (
-                        <p key={idx} className="text-xs text-white/95 font-medium font-sans">{sched}</p>
-                      ))}
+                    <div className="mt-4 pt-3 border-t border-white/15 flex flex-col gap-1.5">
+                      <div className="flex justify-between items-center mb-1">
+                        <p className="text-[8px] uppercase tracking-widest text-white/70 font-bold font-sans">Schedule</p>
+                        <button 
+                          onClick={() => openAddSchedule("pump")}
+                          className="text-[9px] uppercase tracking-widest text-blue-100 hover:text-white font-bold font-sans cursor-pointer focus:outline-none"
+                        >
+                          + Add
+                        </button>
+                      </div>
+                      {getDeviceSchedules(config.schedules, "pump").length === 0 ? (
+                        <p className="text-xs text-white/70 italic font-sans font-medium">No schedules configured</p>
+                      ) : (
+                        getDeviceSchedules(config.schedules, "pump").map((sched: string, idx: number) => (
+                          <div key={idx} className="flex justify-between items-center py-0.5">
+                            <p className="text-xs text-white/95 font-medium font-sans">{sched}</p>
+                            <div className="flex gap-3">
+                              <button 
+                                onClick={() => openEditSchedule("pump", idx, sched)}
+                                className="text-[10px] text-blue-100 hover:text-white font-semibold font-sans cursor-pointer focus:outline-none"
+                                title="Edit Schedule"
+                              >
+                                Edit
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteSchedule("pump", idx)}
+                                className="text-[10px] text-red-200 hover:text-red-100 font-semibold font-sans cursor-pointer focus:outline-none"
+                                title="Delete Schedule"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 )}
 
                 {/* 5. Heater Status & Control */}
                 {config.services?.heater && visibility.heater && (
-                  <div className="col-span-12 md:col-span-4 md:row-span-2 bg-slate-900/30 border border-slate-900 rounded-3xl p-6 flex items-center justify-between hover:border-slate-800 transition-all duration-300 group">
-                    <div className="flex flex-col justify-between h-full py-1">
-                      <div>
-                        <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-1 font-sans">Equipment</p>
-                        <p className="text-xl font-semibold text-slate-300 font-sans">Heater Control</p>
+                  <div className="col-span-12 md:col-span-4 md:row-span-2 bg-slate-900/30 border border-slate-900 rounded-3xl p-6 flex flex-col justify-between hover:border-slate-800 transition-all duration-300 group">
+                    <div>
+                      <div className="flex justify-between items-start">
+                        <span className="text-slate-500 font-bold uppercase tracking-widest text-[10px] font-sans">Equipment</span>
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${system.pool_heater || system.spa_heater ? 'bg-orange-500/20 text-orange-400' : 'bg-slate-950 text-slate-600 border border-slate-900'}`}>
+                          <Flame className={`w-4 h-4 ${system.pool_heater || system.spa_heater ? 'animate-bounce' : ''}`} />
+                        </div>
                       </div>
-                      <div className="mt-4">
-                        <p className="text-2xl font-bold text-white font-sans">
+                      <div className="my-4">
+                        <h3 className="text-lg font-semibold text-slate-300 mb-1 font-sans">Heater Control</h3>
+                        <p className="text-4xl font-extrabold text-white flex items-baseline gap-0.5">
                           {system.pool_heater || system.spa_heater ? "Active" : "Standby"}
                         </p>
                         <p className="text-xs text-slate-500 mt-1">
@@ -655,8 +1018,42 @@ export default function App() {
                         </p>
                       </div>
                     </div>
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors ${system.pool_heater || system.spa_heater ? 'bg-orange-500/20 text-orange-400' : 'bg-slate-950 text-slate-600 border border-slate-900'}`}>
-                      <Flame className={`w-7 h-7 ${system.pool_heater || system.spa_heater ? 'animate-bounce' : ''}`} />
+                    
+                    <div className="mt-4 pt-3 border-t border-slate-900/50 flex flex-col gap-1.5">
+                      <div className="flex justify-between items-center mb-1">
+                        <p className="text-[8px] uppercase tracking-widest text-slate-500 font-bold font-sans">Schedule</p>
+                        <button 
+                          onClick={() => openAddSchedule("heater")}
+                          className="text-[9px] uppercase tracking-widest text-blue-400 hover:text-blue-300 font-bold font-sans cursor-pointer focus:outline-none"
+                        >
+                          + Add
+                        </button>
+                      </div>
+                      {getDeviceSchedules(config.schedules, "heater").length === 0 ? (
+                        <p className="text-xs text-slate-500 italic font-sans font-medium">No schedules configured</p>
+                      ) : (
+                        getDeviceSchedules(config.schedules, "heater").map((sched: string, idx: number) => (
+                          <div key={idx} className="flex justify-between items-center py-0.5">
+                            <p className="text-xs text-slate-400 font-medium font-sans">{sched}</p>
+                            <div className="flex gap-3">
+                              <button 
+                                onClick={() => openEditSchedule("heater", idx, sched)}
+                                className="text-[10px] text-blue-400 hover:text-blue-300 font-semibold font-sans cursor-pointer focus:outline-none"
+                                title="Edit Schedule"
+                              >
+                                Edit
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteSchedule("heater", idx)}
+                                className="text-[10px] text-red-500/80 hover:text-red-400 font-semibold font-sans cursor-pointer focus:outline-none"
+                                title="Delete Schedule"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 )}
@@ -730,6 +1127,43 @@ export default function App() {
                         </div>
                       )}
                     </div>
+                    <div className="mt-4 pt-3 border-t border-slate-900/50 flex flex-col gap-1.5">
+                      <div className="flex justify-between items-center mb-1">
+                        <p className="text-[8px] uppercase tracking-widest text-slate-500 font-bold font-sans">Schedule</p>
+                        <button 
+                          onClick={() => openAddSchedule("lights")}
+                          className="text-[9px] uppercase tracking-widest text-blue-400 hover:text-blue-300 font-bold font-sans cursor-pointer focus:outline-none"
+                        >
+                          + Add
+                        </button>
+                      </div>
+                      {getDeviceSchedules(config.schedules, "lights").length === 0 ? (
+                        <p className="text-xs text-slate-500 italic font-sans mb-2 font-medium">No schedules configured</p>
+                      ) : (
+                        getDeviceSchedules(config.schedules, "lights").map((sched: string, idx: number) => (
+                          <div key={idx} className="flex justify-between items-center py-0.5">
+                            <p className="text-xs text-slate-400 font-medium font-sans">{sched}</p>
+                            <div className="flex gap-3">
+                              <button 
+                                onClick={() => openEditSchedule("lights", idx, sched)}
+                                className="text-[10px] text-blue-400 hover:text-blue-300 font-semibold font-sans cursor-pointer focus:outline-none"
+                                title="Edit Schedule"
+                              >
+                                Edit
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteSchedule("lights", idx)}
+                                className="text-[10px] text-red-500/80 hover:text-red-400 font-semibold font-sans cursor-pointer focus:outline-none"
+                                title="Delete Schedule"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
                     <div className="mt-4 pt-3 border-t border-slate-900/50 flex justify-between items-center">
                       <span className="text-[8px] uppercase tracking-widest text-slate-500 font-bold font-sans">System aux_2</span>
                       <span className="px-2 py-0.5 bg-slate-950 text-slate-500 rounded text-[9px] font-mono border border-slate-900">ID: 2</span>
@@ -739,19 +1173,31 @@ export default function App() {
 
                 {/* 7. Bubbler Card */}
                 {config.services?.bubbler && visibility.bubbler && (
-                  <button 
-                    onClick={() => handleBubblerClick(system.bubbler)}
-                    disabled={toggling !== null}
-                    className={`col-span-12 md:col-span-4 md:row-span-2 bg-slate-900/30 border rounded-3xl p-6 flex items-center justify-between hover:border-slate-800 transition-all duration-300 group cursor-pointer active:scale-[0.98] w-full text-left disabled:opacity-50 ${
+                  <div 
+                    className={`col-span-12 md:col-span-4 md:row-span-2 bg-slate-900/30 border rounded-3xl p-6 flex flex-col justify-between hover:border-slate-800 transition-all duration-300 group ${
                       bubblerConfirm ? 'border-orange-500/40 shadow-[0_0_15px_rgba(249,115,22,0.1)]' : 'border-slate-900'
                     }`}
                   >
-                    <div className="flex flex-col justify-between h-full py-1">
-                      <div>
-                        <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-1 font-sans">Features</p>
-                        <p className="text-xl font-semibold text-slate-300 font-sans">Bubbler Jets</p>
+                    <div>
+                      <div className="flex justify-between items-start">
+                        <span className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-1 font-sans">Features</span>
+                        <button 
+                          onClick={() => handleBubblerClick(system.bubbler)}
+                          disabled={toggling !== null}
+                          className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all cursor-pointer ${
+                            bubblerConfirm 
+                              ? 'bg-orange-500/20 text-orange-400 border border-orange-500/40 animate-pulse shadow-[0_0_15px_rgba(249,115,22,0.25)]' 
+                              : system.bubbler 
+                                ? 'bg-cyan-500/20 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.25)] hover:bg-cyan-500/30 active:scale-[0.95]' 
+                                : 'bg-slate-950 text-slate-600 border border-slate-900 hover:bg-slate-900 active:scale-[0.95]'
+                          }`}
+                        >
+                          <Droplets className={`w-6 h-6 ${system.bubbler ? 'animate-bounce text-cyan-400' : ''}`} />
+                        </button>
                       </div>
+                      
                       <div className="mt-4">
+                        <h3 className="text-lg font-semibold text-slate-300 mb-1 font-sans">Bubbler Jets</h3>
                         <p className="text-2xl font-bold text-white font-sans">
                           {toggling === "aux_3" ? "Updating..." : bubblerConfirm ? "Confirm?" : system.bubbler ? "Active" : "Standby"}
                         </p>
@@ -759,23 +1205,51 @@ export default function App() {
                           {toggling === "aux_3" 
                             ? "Updating status..." 
                             : bubblerConfirm 
-                              ? (system.bubbler ? "Tap card again to turn OFF" : "Tap card again to turn ON") 
+                              ? (system.bubbler ? "Tap icon again to turn OFF" : "Tap icon again to turn ON") 
                               : system.bubbler 
-                                ? "Tap to turn off" 
-                                : "Tap to turn on"}
+                                ? "Active • Tap icon to toggle" 
+                                : "Bubbler off"}
                         </p>
                       </div>
                     </div>
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 ${
-                      bubblerConfirm 
-                        ? 'bg-orange-500/20 text-orange-400 border border-orange-500/40 animate-pulse' 
-                        : system.bubbler 
-                          ? 'bg-cyan-500/20 text-cyan-400' 
-                          : 'bg-slate-950 text-slate-600 border border-slate-900'
-                    }`}>
-                      <Droplets className={`w-7 h-7 ${system.bubbler ? 'animate-bounce' : ''}`} />
+
+                    <div className="mt-4 pt-3 border-t border-slate-900/50 flex flex-col gap-1.5">
+                      <div className="flex justify-between items-center mb-1">
+                        <p className="text-[8px] uppercase tracking-widest text-slate-500 font-bold font-sans">Schedule</p>
+                        <button 
+                          onClick={() => openAddSchedule("bubbler")}
+                          className="text-[9px] uppercase tracking-widest text-blue-400 hover:text-blue-300 font-bold font-sans cursor-pointer focus:outline-none"
+                        >
+                          + Add
+                        </button>
+                      </div>
+                      {getDeviceSchedules(config.schedules, "bubbler").length === 0 ? (
+                        <p className="text-xs text-slate-500 italic font-sans font-medium">No schedules configured</p>
+                      ) : (
+                        getDeviceSchedules(config.schedules, "bubbler").map((sched: string, idx: number) => (
+                          <div key={idx} className="flex justify-between items-center py-0.5">
+                            <p className="text-xs text-slate-400 font-medium font-sans">{sched}</p>
+                            <div className="flex gap-3">
+                              <button 
+                                onClick={() => openEditSchedule("bubbler", idx, sched)}
+                                className="text-[10px] text-blue-400 hover:text-blue-300 font-semibold font-sans cursor-pointer focus:outline-none"
+                                title="Edit Schedule"
+                              >
+                                Edit
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteSchedule("bubbler", idx)}
+                                className="text-[10px] text-red-500/80 hover:text-red-400 font-semibold font-sans cursor-pointer focus:outline-none"
+                                title="Delete Schedule"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
-                  </button>
+                  </div>
                 )}
 
                 {/* 8. Network Diagnostics */}
@@ -975,6 +1449,175 @@ export default function App() {
                     className="px-6 py-2 bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white font-bold rounded-xl text-sm transition-all disabled:opacity-50 cursor-pointer font-sans"
                   >
                     {savingConfig ? "Saving..." : "Save Settings"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Schedule Overlay Modal */}
+        {showScheduleModal && (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-6" onClick={() => setShowScheduleModal(false)}>
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 max-w-md w-full shadow-2xl animate-fadeIn" onClick={(e) => e.stopPropagation()}>
+              <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2 border-b border-slate-800 pb-4 font-sans capitalize">
+                {scheduleModalMode} Schedule
+              </h2>
+              
+              <form onSubmit={handleSaveSchedule} className="space-y-5">
+                {/* 24 Hours Toggle */}
+                <label className="flex items-center gap-2 bg-slate-950/40 border border-slate-800/80 rounded-xl p-3.5 cursor-pointer hover:border-slate-700 transition-colors">
+                  <input 
+                    type="checkbox" 
+                    checked={schedIs24Hours}
+                    onChange={(e) => setSchedIs24Hours(e.target.checked)}
+                    className="w-4 h-4 rounded text-blue-600 bg-slate-950 border-slate-800 focus:ring-blue-500 cursor-pointer"
+                  />
+                  <span className="text-sm font-semibold text-slate-300 font-sans">Run 24 Hours (All Day)</span>
+                </label>
+
+                {/* Time Range Inputs */}
+                {!schedIs24Hours && (
+                  <div className="space-y-4 bg-slate-950/40 border border-slate-900/60 rounded-2xl p-4 animate-fadeIn">
+                    {/* Start Time */}
+                    <div>
+                      <label className="block text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-1.5 font-sans">Start Time</label>
+                      <div className="flex gap-2">
+                        <select 
+                          value={schedStartHr} 
+                          onChange={(e) => setSchedStartHr(e.target.value)}
+                          className="flex-grow bg-slate-900 border border-slate-800 rounded-lg p-2 text-white focus:outline-none font-mono text-sm"
+                        >
+                          {Array.from({ length: 12 }, (_, i) => i + 1).map(h => (
+                            <option key={h} value={h}>{h}</option>
+                          ))}
+                        </select>
+                        <select 
+                          value={schedStartMin} 
+                          onChange={(e) => setSchedStartMin(e.target.value)}
+                          className="flex-grow bg-slate-900 border border-slate-800 rounded-lg p-2 text-white focus:outline-none font-mono text-sm"
+                        >
+                          {["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"].map(m => (
+                            <option key={m} value={m}>{m}</option>
+                          ))}
+                        </select>
+                        <select 
+                          value={schedStartAmpm} 
+                          onChange={(e) => setSchedStartAmpm(e.target.value)}
+                          className="bg-slate-900 border border-slate-800 rounded-lg p-2 text-white focus:outline-none font-mono text-sm w-20"
+                        >
+                          <option value="AM">AM</option>
+                          <option value="PM">PM</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* End Time */}
+                    <div>
+                      <label className="block text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-1.5 font-sans">End Time</label>
+                      <div className="flex gap-2">
+                        <select 
+                          value={schedEndHr} 
+                          onChange={(e) => setSchedEndHr(e.target.value)}
+                          className="flex-grow bg-slate-900 border border-slate-800 rounded-lg p-2 text-white focus:outline-none font-mono text-sm"
+                        >
+                          {Array.from({ length: 12 }, (_, i) => i + 1).map(h => (
+                            <option key={h} value={h}>{h}</option>
+                          ))}
+                        </select>
+                        <select 
+                          value={schedEndMin} 
+                          onChange={(e) => setSchedEndMin(e.target.value)}
+                          className="flex-grow bg-slate-900 border border-slate-800 rounded-lg p-2 text-white focus:outline-none font-mono text-sm"
+                        >
+                          {["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"].map(m => (
+                            <option key={m} value={m}>{m}</option>
+                          ))}
+                        </select>
+                        <select 
+                          value={schedEndAmpm} 
+                          onChange={(e) => setSchedEndAmpm(e.target.value)}
+                          className="bg-slate-900 border border-slate-800 rounded-lg p-2 text-white focus:outline-none font-mono text-sm w-20"
+                        >
+                          <option value="AM">AM</option>
+                          <option value="PM">PM</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Day Selection */}
+                <div className="space-y-2">
+                  <label className="block text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-1 font-sans">Active Days</label>
+                  <select 
+                    value={schedDayType} 
+                    onChange={(e) => {
+                      setSchedDayType(e.target.value);
+                      if (e.target.value === "everyday") {
+                        setSchedCustomDays(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]);
+                      } else if (e.target.value === "weekdays") {
+                        setSchedCustomDays(["Mon", "Tue", "Wed", "Thu", "Fri"]);
+                      } else if (e.target.value === "weekends") {
+                        setSchedCustomDays(["Sat", "Sun"]);
+                      }
+                    }}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none text-sm transition-all"
+                  >
+                    <option value="everyday">Every Day</option>
+                    <option value="weekdays">Weekdays (Mon-Fri)</option>
+                    <option value="weekends">Weekends (Sat-Sun)</option>
+                    <option value="custom">Custom Days</option>
+                  </select>
+
+                  {schedDayType === "custom" && (
+                    <div className="grid grid-cols-4 gap-2 pt-2 animate-fadeIn bg-slate-950/20 border border-slate-900/60 rounded-xl p-3">
+                      {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(day => {
+                        const isChecked = schedCustomDays.includes(day);
+                        return (
+                          <label key={day} className="flex items-center gap-1.5 cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              checked={isChecked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSchedCustomDays(prev => [...prev, day]);
+                                } else {
+                                  setSchedCustomDays(prev => prev.filter(d => d !== day));
+                                }
+                              }}
+                              className="w-3.5 h-3.5 rounded text-blue-600 bg-slate-950 border-slate-800 focus:ring-blue-500 cursor-pointer"
+                            />
+                            <span className="text-xs text-slate-300 font-sans">{day}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Duplicate Warning */}
+                {schedWarning && (
+                  <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-4 flex gap-3 text-amber-400 items-start animate-fadeIn">
+                    <span className="text-base font-bold shrink-0 mt-0.5">⚠️</span>
+                    <p className="text-xs font-semibold leading-relaxed text-amber-300/90 font-sans">{schedWarning}</p>
+                  </div>
+                )}
+
+                {/* Buttons */}
+                <div className="flex gap-3 justify-end border-t border-slate-800/80 pt-4">
+                  <button 
+                    type="button"
+                    onClick={() => setShowScheduleModal(false)}
+                    className="px-4 py-2 bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800 rounded-xl text-sm transition-all cursor-pointer font-sans"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    className="px-6 py-2 bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white font-bold rounded-xl text-sm transition-all cursor-pointer font-sans"
+                  >
+                    Save Schedule
                   </button>
                 </div>
               </form>
