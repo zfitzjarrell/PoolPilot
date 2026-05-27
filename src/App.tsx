@@ -142,11 +142,26 @@ export default function App() {
     };
   }, []);
 
+  const openSettings = () => {
+    if (!showSettings) {
+      setUsernameInput(config.username || "");
+      setPasswordInput(config.hasPassword ? "********" : "");
+    }
+    setShowSettings(!showSettings);
+  };
+
   const fetchTemp = async () => {
     setLoading(true);
     setError(null);
     try {
       const res = await fetch("/api/pool-temp");
+      if (!res.ok) {
+        throw new Error(`HTTP error! Status: ${res.status}`);
+      }
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Response from server was not JSON");
+      }
       const json = await res.json();
       if (json.error || !json.success) {
         throw new Error(json.error || "Failed to fetch pool temperature");
@@ -170,6 +185,13 @@ export default function App() {
         },
         body: JSON.stringify({ device, action }),
       });
+      if (!res.ok) {
+        throw new Error(`HTTP error! Status: ${res.status}`);
+      }
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Response from server was not JSON");
+      }
       const json = await res.json();
       if (!json.success) {
         alert(json.error || "Failed to toggle device");
@@ -192,6 +214,13 @@ export default function App() {
         },
         body: JSON.stringify({ device, action: "set_color", color }),
       });
+      if (!res.ok) {
+        throw new Error(`HTTP error! Status: ${res.status}`);
+      }
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Response from server was not JSON");
+      }
       const json = await res.json();
       if (!json.success) {
         alert(json.error || "Failed to set color");
@@ -207,8 +236,21 @@ export default function App() {
   const fetchConfig = async () => {
     try {
       const res = await fetch("/api/config");
+      if (!res.ok) {
+        throw new Error(`HTTP error! Status: ${res.status}`);
+      }
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Response from server was not JSON");
+      }
       const json = await res.json();
       setConfig(json);
+      if (json.username) {
+        setUsernameInput(json.username);
+      }
+      if (json.hasPassword) {
+        setPasswordInput("********");
+      }
     } catch (err) {
       console.error("Failed to fetch configuration:", err);
     }
@@ -229,13 +271,19 @@ export default function App() {
           services: config.services
         }),
       });
-      const json = await res.json();
-      if (json.success) {
+      
+      let json: any = {};
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        json = await res.json();
+      }
+      
+      if (res.ok && json.success) {
         await fetchConfig();
         setShowSettings(false);
         fetchTemp();
       } else {
-        alert(json.error || "Failed to save configuration");
+        alert(json.error || `Failed to save configuration (Status: ${res.status})`);
       }
     } catch (err: any) {
       alert("Error saving configuration: " + err.message);
@@ -352,7 +400,7 @@ export default function App() {
                 <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin text-blue-400' : ''}`} />
               </button>
               <button 
-                onClick={() => setShowSettings(!showSettings)}
+                onClick={openSettings}
                 className={`p-2.5 border rounded-xl transition-all cursor-pointer ${
                   showSettings 
                     ? 'bg-blue-500/20 text-blue-400 border-blue-500/40 shadow-[0_0_15px_rgba(59,130,246,0.25)]' 
