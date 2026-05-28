@@ -37,13 +37,22 @@ function loadConfig(): Config {
     try {
       const config = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8"));
       if (!config.schedules) {
-        config.schedules = {
-          pump: ["24 hrs, Every Day"],
-          cleaner: ["7:00 AM - 10:00 AM, Every Day"],
-          lights: [],
-          bubbler: [],
-          heater: []
-        };
+        config.schedules = {};
+      }
+      if (!config.schedules.pump) {
+        config.schedules.pump = ["24 hrs, Every Day"];
+      }
+      if (!config.schedules.cleaner) {
+        config.schedules.cleaner = ["7:00 AM - 10:00 AM, Every Day"];
+      }
+      if (!config.schedules.lights) {
+        config.schedules.lights = [];
+      }
+      if (!config.schedules.bubbler) {
+        config.schedules.bubbler = [];
+      }
+      if (!config.schedules.heater) {
+        config.schedules.heater = [];
       }
       return config;
     } catch (e) {

@@ -1308,11 +1308,20 @@
     // Schedules helper functions (ES5)
     function getDeviceSchedules(deviceKey) {
       var schedules = serverConfig.schedules;
-      if (!schedules) return [];
-      if (deviceKey === 'pump') {
-        return schedules.pump || schedules.pool_pump || [];
+      if (!schedules) {
+        if (deviceKey === 'pump') return ['24 hrs, Every Day'];
+        if (deviceKey === 'cleaner') return ['7:00 AM - 10:00 AM, Every Day'];
+        return [];
       }
-      return schedules[deviceKey] || [];
+      var scheds = deviceKey === 'pump' 
+        ? (schedules.pump || schedules.pool_pump) 
+        : schedules[deviceKey];
+      if (!scheds) {
+        if (deviceKey === 'pump') return ['24 hrs, Every Day'];
+        if (deviceKey === 'cleaner') return ['7:00 AM - 10:00 AM, Every Day'];
+        return [];
+      }
+      return scheds;
     }
 
     function formatScheduleStringLegacy(is24Hours, startHr, startMin, startAmpm, endHr, endMin, endAmpm, dayType, customDays) {
@@ -1707,13 +1716,15 @@
             btnGroup.style.gap = "8px";
             
             var editBtn = document.createElement("button");
-            editBtn.style.background = "none";
-            editBtn.style.border = "none";
+            editBtn.style.background = (dev === "pump") ? "rgba(255, 255, 255, 0.08)" : "rgba(56, 189, 248, 0.08)";
+            editBtn.style.border = "1px solid " + ((dev === "pump") ? "rgba(255, 255, 255, 0.25)" : "rgba(56, 189, 248, 0.25)");
             editBtn.style.color = (dev === "pump") ? "#bae6fd" : "#38bdf8";
             editBtn.style.fontSize = "10px";
             editBtn.style.fontWeight = "600";
             editBtn.style.cursor = "pointer";
-            editBtn.style.padding = "0";
+            editBtn.style.padding = "3px 8px";
+            editBtn.style.borderRadius = "4px";
+            editBtn.style.marginRight = "6px";
             editBtn.innerText = "Edit";
             (function(dKey, idx, val) {
               editBtn.onclick = function(e) {
@@ -1724,13 +1735,14 @@
             btnGroup.appendChild(editBtn);
             
             var delBtn = document.createElement("button");
-            delBtn.style.background = "none";
-            delBtn.style.border = "none";
+            delBtn.style.background = (dev === "pump") ? "rgba(252, 165, 165, 0.08)" : "rgba(248, 113, 113, 0.08)";
+            delBtn.style.border = "1px solid " + ((dev === "pump") ? "rgba(252, 165, 165, 0.25)" : "rgba(248, 113, 113, 0.25)");
             delBtn.style.color = (dev === "pump") ? "#fca5a5" : "#f87171";
             delBtn.style.fontSize = "10px";
             delBtn.style.fontWeight = "600";
             delBtn.style.cursor = "pointer";
-            delBtn.style.padding = "0";
+            delBtn.style.padding = "3px 8px";
+            delBtn.style.borderRadius = "4px";
             delBtn.innerText = "Delete";
             (function(dKey, idx) {
               delBtn.onclick = function(e) {

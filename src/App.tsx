@@ -52,11 +52,23 @@ const COLOR_PRESETS: { [key: string]: { bg: string, label: string } } = {
 };
 
 const getDeviceSchedules = (schedules: any, deviceKey: string): string[] => {
-  if (!schedules) return [];
-  if (deviceKey === "pump") {
-    return schedules.pump || schedules.pool_pump || [];
+  if (!schedules) {
+    if (deviceKey === "pump") return ["24 hrs, Every Day"];
+    if (deviceKey === "cleaner") return ["7:00 AM - 10:00 AM, Every Day"];
+    return [];
   }
-  return schedules[deviceKey] || [];
+  
+  const scheds = deviceKey === "pump"
+    ? (schedules.pump || schedules.pool_pump)
+    : schedules[deviceKey];
+    
+  if (!scheds) {
+    if (deviceKey === "pump") return ["24 hrs, Every Day"];
+    if (deviceKey === "cleaner") return ["7:00 AM - 10:00 AM, Every Day"];
+    return [];
+  }
+  
+  return scheds;
 };
 
 const formatScheduleString = (
