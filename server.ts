@@ -103,6 +103,154 @@ function getLocalIpAddress(): string {
   return "localhost";
 }
 
+let lastCheckedMinute = "";
+
+function parseTime(timeStr: string): { hour: number; minute: number } | null {
+  const match = timeStr.match(/^(\d+):(\d+)\s*(AM|PM)$/i);
+  if (!match) return null;
+  
+  let hour = parseInt(match[1], 10);
+  const minute = parseInt(match[2], 10);
+  const ampm = match[3].toUpperCase();
+  
+  if (ampm === "PM" && hour < 12) {
+    hour += 12;
+  } else if (ampm === "AM" && hour === 12) {
+    hour = 0;
+  }
+  
+  return { hour, minute };
+}
+
+function triggerDeviceAction(device: string, action: "on" | "off") {
+  const config = loadConfig();
+  const username = config.username || process.env.IAQUALINK_USERNAME || "";
+  const password = config.password || process.env.IAQUALINK_PASSWORD || "";
+
+  if (!username || !password) {
+    console.error("[Scheduler] Cannot run schedule: missing credentials");
+    return;
+  }
+
+  const cmd = process.platform === "win32" 
+    ? `python toggle_device.py "${device}" "${action}"` 
+    : `python3 toggle_device.py "${device}" "${action}"`;
+
+  console.log(`[Scheduler] Executing command: ${cmd}`);
+  exec(
+    cmd,
+    {
+      cwd: process.cwd(),
+      env: {
+        ...process.env,
+        IAQUALINK_USERNAME: username,
+        IAQUALINK_PASSWORD: password,
+        PYTHONPATH: ".python_lib"
+      }
+    },
+    (error, stdout, stderr) => {
+      if (error) {
+        console.error(`[Scheduler] Error toggling device ${device} to ${action}:`, error);
+        console.error(`[Scheduler] Stderr:`, stderr);
+      } else {
+        console.log(`[Scheduler] Successfully toggled device ${device} to ${action}. Response:`, stdout.trim());
+      }
+    }
+  );
+}
+
+function checkAndRunSchedules() {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const hh = String(now.getHours()).padStart(2, '0');
+  const min = String(now.getMinutes()).padStart(2, '0');
+  const currentMinuteStr = `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+  
+  if (currentMinuteStr === lastCheckedMinute) {
+    return;
+  }
+  lastCheckedMinute = currentMinuteStr;
+  
+  const config = loadConfig();
+  if (!config.schedules) return;
+  
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const currentDay = days[now.getDay()];
+  const currentHour = now.getHours();
+  const currentMinVal = now.getMinutes();
+  
+  const isDayMatch = (dayStr: string): boolean => {
+    const dLower = dayStr.toLowerCase().trim();
+    if (dLower === "every day" || dLower === "all" || dLower === "everyday") return true;
+    if (dLower === "weekdays") {
+      return ["Mon", "Tue", "Wed", "Thu", "Fri"].includes(currentDay);
+    }
+    if (dLower === "weekends") {
+      return ["Sat", "Sun"].includes(currentDay);
+    }
+    const customDays = dayStr.split(",").map(d => d.trim().toLowerCase());
+    return customDays.includes(currentDay.toLowerCase());
+  };
+  
+  const deviceKeyMap: { [key: string]: string } = {
+    pump: "pool_pump",
+    cleaner: "aux_1",
+    lights: "aux_2",
+    bubbler: "aux_3",
+    heater: "pool_heater"
+  };
+  
+  Object.keys(config.schedules).forEach(key => {
+    const deviceName = deviceKeyMap[key];
+    if (!deviceName) return;
+    
+    const schedList = config.schedules?.[key];
+    if (!schedList || !Array.isArray(schedList)) return;
+    
+    schedList.forEach(schedStr => {
+      try {
+        const parts = schedStr.split(",");
+        if (parts.length < 2) return;
+        
+        const timePart = parts[0].trim();
+        const dayPart = parts.slice(1).join(",").trim();
+        
+        if (!isDayMatch(dayPart)) return;
+        
+        if (timePart.toLowerCase() === "24 hrs") {
+          if (currentHour === 0 && currentMinVal === 0) {
+            triggerDeviceAction(deviceName, "on");
+          }
+          return;
+        }
+        
+        const rangeParts = timePart.split("-");
+        if (rangeParts.length !== 2) return;
+        
+        const startStr = rangeParts[0].trim();
+        const endStr = rangeParts[1].trim();
+        
+        const startParsed = parseTime(startStr);
+        const endParsed = parseTime(endStr);
+        
+        if (!startParsed || !endParsed) return;
+        
+        if (currentHour === startParsed.hour && currentMinVal === startParsed.minute) {
+          console.log(`[Scheduler] Starting schedule for ${key} (${deviceName}): ${schedStr}`);
+          triggerDeviceAction(deviceName, "on");
+        } else if (currentHour === endParsed.hour && currentMinVal === endParsed.minute) {
+          console.log(`[Scheduler] Ending schedule for ${key} (${deviceName}): ${schedStr}`);
+          triggerDeviceAction(deviceName, "off");
+        }
+      } catch (err) {
+        console.error(`Error parsing schedule string "${schedStr}":`, err);
+      }
+    });
+  });
+}
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
@@ -323,6 +471,10 @@ async function startServer() {
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
+
+  // Start the background schedule checker
+  checkAndRunSchedules();
+  setInterval(checkAndRunSchedules, 30000);
 
   app.listen(PORT, "0.0.0.0", () => {
     const url = `http://localhost:${PORT}`;
