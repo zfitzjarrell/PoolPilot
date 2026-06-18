@@ -320,6 +320,29 @@
       justify-content: space-between;
       align-items: center;
     }
+    @keyframes fireGradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    @-webkit-keyframes fireGradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .hot-temp-glow {
+      background: -webkit-linear-gradient(left, #ff0f0f, #ff6b00, #ffcc00, #ff6b00, #ff0f0f) !important;
+      background: linear-gradient(to right, #ff0f0f, #ff6b00, #ffcc00, #ff6b00, #ff0f0f) !important;
+      background-size: 300% 300% !important;
+      -webkit-background-clip: text !important;
+      background-clip: text !important;
+      -webkit-text-fill-color: transparent !important;
+      text-fill-color: transparent !important;
+      animation: fireGradient 3s ease infinite !important;
+      -webkit-animation: fireGradient 3s ease infinite !important;
+      filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.75)) drop-shadow(0 0 30px rgba(249, 115, 22, 0.55)) !important;
+      -webkit-filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.75)) drop-shadow(0 0 30px rgba(249, 115, 22, 0.55)) !important;
+    }
   </style>
 </head>
 <body>
@@ -970,10 +993,33 @@
                   poolTempEl.innerText = poolTemp;
                   var color = '#38bdf8'; // Blue
                   var unitColor = '#7dd3fc'; // Light blue
+                  
+                  // Reset any previous hot styling
+                  poolTempEl.className = "temp-value";
+                  poolTempEl.style.backgroundImage = "";
+                  poolTempEl.style.backgroundSize = "";
+                  poolTempEl.style.webkitBackgroundClip = "";
+                  poolTempEl.style.backgroundClip = "";
+                  poolTempEl.style.webkitTextFillColor = "";
+                  poolTempEl.style.animation = "";
+                  poolTempEl.style.webkitAnimation = "";
+                  poolTempEl.style.filter = "";
+                  poolTempEl.style.webkitFilter = "";
+                  
                   if (tempColorSettings.enabled && system.pool_temp !== null && system.pool_temp !== undefined) {
                     var t = system.pool_temp;
                     if (t >= tempColorSettings.hotMin) {
-                      color = '#F94144'; // Red
+                      poolTempEl.className = "temp-value hot-temp-glow";
+                      poolTempEl.style.backgroundImage = "linear-gradient(to right, #ff0f0f, #ff6b00, #ffcc00, #ff6b00, #ff0f0f)";
+                      poolTempEl.style.backgroundSize = "300% 300%";
+                      poolTempEl.style.webkitBackgroundClip = "text";
+                      poolTempEl.style.backgroundClip = "text";
+                      poolTempEl.style.webkitTextFillColor = "transparent";
+                      poolTempEl.style.animation = "fireGradient 3s ease infinite";
+                      poolTempEl.style.webkitAnimation = "fireGradient 3s ease infinite";
+                      poolTempEl.style.filter = "drop-shadow(0 0 12px rgba(239, 68, 68, 0.75)) drop-shadow(0 0 30px rgba(249, 115, 22, 0.55))";
+                      poolTempEl.style.webkitFilter = "drop-shadow(0 0 12px rgba(239, 68, 68, 0.75)) drop-shadow(0 0 30px rgba(249, 115, 22, 0.55))";
+                      color = 'transparent';
                       unitColor = '#F94144';
                     } else if (t >= tempColorSettings.veryWarmMin) {
                       color = '#FF924C'; // Orange

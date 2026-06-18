@@ -21,9 +21,21 @@ const getTempColorStyle = (temp: number | null, settings?: { enabled: boolean; w
   const activeSettings = settings || { enabled: true, warmMin: 79, veryWarmMin: 84, hotMin: 88 };
   if (!activeSettings.enabled) return {};
   
+  if (temp >= activeSettings.hotMin) {
+    return {
+      color: "#F94144", // Fallback color for text and degree symbol color checks
+      backgroundImage: "linear-gradient(-45deg, #ff0f0f, #ff6b00, #ffcc00, #ff6b00, #ff0f0f)",
+      backgroundSize: "300% 300%",
+      WebkitTextFillColor: "transparent",
+      WebkitBackgroundClip: "text",
+      backgroundClip: "text",
+      animation: "fireGradient 3s ease infinite",
+      filter: "drop-shadow(0 0 12px rgba(239, 68, 68, 0.75)) drop-shadow(0 0 30px rgba(249, 115, 22, 0.55))"
+    };
+  }
+  
   let color = "";
-  if (temp >= activeSettings.hotMin) color = "#F94144";
-  else if (temp >= activeSettings.veryWarmMin) color = "#FF924C";
+  if (temp >= activeSettings.veryWarmMin) color = "#FF924C";
   else if (temp >= activeSettings.warmMin) color = "#FFCA3A";
   else return {};
   
