@@ -80,7 +80,14 @@ pct create "$NEXTID" "$TEMPLATE_STORAGE:vztmpl/$TEMPLATE_NAME" \
   --unprivileged 1 \
   --features nesting=1
 
-# 6. Pre-configure Jandy credentials in the Container filesystem
+# 6. Start container and wait for network
+echo -e "${YW}Starting Container ($NEXTID)...${CL}"
+pct start "$NEXTID"
+
+echo -e "${YW}Waiting for LXC boot and network configuration (10s)...${CL}"
+sleep 10
+
+# 7. Pre-configure Jandy credentials in the Container filesystem
 echo -e "${YW}Injecting Jandy / iAquaLink credentials into LXC container...${CL}"
 pct exec "$NEXTID" -- mkdir -p /opt/poolpilot
 pct exec "$NEXTID" -- bash -c "cat << 'EOF' > /opt/poolpilot/config.json
@@ -103,13 +110,6 @@ pct exec "$NEXTID" -- bash -c "cat << 'EOF' > /opt/poolpilot/config.json
   }
 }
 EOF"
-
-# 7. Start container and wait for network
-echo -e "${YW}Starting Container ($NEXTID)...${CL}"
-pct start "$NEXTID"
-
-echo -e "${YW}Waiting for LXC network configuration (10s)...${CL}"
-sleep 10
 
 # 8. Run the in-container installation script
 echo -e "${YW}Downloading and executing installer inside the container...${CL}"
