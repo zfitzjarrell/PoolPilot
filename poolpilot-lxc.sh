@@ -112,6 +112,10 @@ pct exec "$NEXTID" -- bash -c "cat << 'EOF' > /opt/poolpilot/config.json
 EOF"
 
 # 8. Run the in-container installation script
+echo -e "${YW}Updating container package lists...${CL}"
+pct exec "$NEXTID" -- apt-get update -y
+echo -e "${YW}Installing curl inside the container...${CL}"
+pct exec "$NEXTID" -- apt-get install -y curl
 echo -e "${YW}Downloading and executing installer inside the container...${CL}"
 pct exec "$NEXTID" -- bash -c "curl -sL https://raw.githubusercontent.com/zfitzjarrell/poolpilot/main/poolpilot-install.sh > /tmp/poolpilot-install.sh && bash /tmp/poolpilot-install.sh"
 
