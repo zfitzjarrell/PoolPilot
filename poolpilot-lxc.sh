@@ -74,12 +74,11 @@ pct create "$NEXTID" "$TEMPLATE_STORAGE:vztmpl/$TEMPLATE_NAME" \
   --cores 1 \
   --memory 512 \
   --swap 512 \
-  --disk 4 \
+  --rootfs "$DISK_STORAGE:4" \
   --net0 name=eth0,bridge=vmbr0,ip=dhcp \
   --onboot 1 \
   --unprivileged 1 \
-  --features nesting=1 \
-  --storage "$DISK_STORAGE"
+  --features nesting=1
 
 # 6. Pre-configure Jandy credentials in the Container filesystem
 echo -e "${YW}Injecting Jandy / iAquaLink credentials into LXC container...${CL}"
